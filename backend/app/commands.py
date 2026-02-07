@@ -1,60 +1,52 @@
 import click
 import time
-import random
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask.cli import with_appcontext
-from sqlalchemy.exc import IntegrityError
-from app import db
+from app import db, create_app
 from app.models import Property
-from app.services.scraper import scrape_meget_listing, get_listing_urls
+from app.services.meget import scrape_meget_listing, get_listing_urls
 
 
-@click.command(name='scrape_meget')
-@with_appcontext
-def scrape_command():
-    print("[INFO] Starting scraping job for Meget...")
+def process_url_in_thread(url, app_config):
+    app = create_app(app_config)
 
-    urls = get_listing_urls()
-
-    if not urls:
-        print("[WARNING] No URLs found or connection failed.")
-        return
-
-    print(f"[INFO] Found {len(urls)} listings. Processing...")
-
-    stats = {
-        'new': 0,
-        'updated': 0,
-        'skipped': 0,
-        'errors': 0
-    }
-
-    for url in urls:
-        time.sleep(random.uniform(1.0, 2.0))
-
+    with app.app_context():
         data = scrape_meget_listing(url)
-
         if not data:
-            print(f"[ERROR] Failed to scrape URL: {url}")
-            stats['errors'] += 1
-            continue
+            return {'status': 'error', 'url': url, 'msg': 'Scrape failed'}
 
         try:
             existing_prop = Property.query.filter_by(source_url=url).first()
 
             if existing_prop:
-                if existing_prop.price != data['price']:
-                    old_price = existing_prop.price
+                needs_update = False
+                changes = []
 
+                if existing_prop.price != data['price']:
                     existing_prop.price = data['price']
                     existing_prop.currency = data['currency']
-                    existing_prop.updated_at = datetime.utcnow()
+                    changes.append("price")
+                    needs_update = True
 
+                if data['address'] and existing_prop.address != data['address']:
+                    existing_prop.address = data['address']
+                    existing_prop.city = data['city']
+                    existing_prop.district = data['district']
+                    if "address" not in changes: changes.append("address")
+                    needs_update = True
+
+                if not existing_prop.images and data['images']:
+                    existing_prop.images = data['images']
+                    changes.append("images")
+                    needs_update = True
+
+                if needs_update:
+                    existing_prop.updated_at = datetime.utcnow()
                     db.session.commit()
-                    stats['updated'] += 1
-                    print(f"[UPDATED] ID {existing_prop.id}: Price changed {old_price} -> {data['price']}")
+                    return {'status': 'updated', 'title': data['title'], 'msg': ', '.join(changes)}
                 else:
-                    stats['skipped'] += 1
+                    return {'status': 'skipped', 'url': url}
             else:
                 new_prop = Property(
                     title=data['title'],
@@ -63,25 +55,73 @@ def scrape_command():
                     price=data.get('price'),
                     currency=data.get('currency'),
                     address=data.get('address'),
+                    city=data.get('city'),
+                    district=data.get('district'),
                     area=data.get('area'),
                     rooms=data.get('rooms'),
+                    images=data.get('images'),
                     description=f"Scraped from {data['source_website']}"
                 )
                 db.session.add(new_prop)
                 db.session.commit()
-                stats['new'] += 1
-                print(f"[CREATED] New listing: {data['title'][:50]}... (${data['price']})")
+                return {'status': 'new', 'title': data['title'], 'price': data['price'], 'currency': data['currency']}
 
-        except IntegrityError:
-            db.session.rollback()
-            print(f"[ERROR] Integrity error (duplicate) for URL: {url}")
-            stats['errors'] += 1
         except Exception as e:
             db.session.rollback()
-            print(f"[ERROR] Database error: {str(e)}")
-            stats['errors'] += 1
+            return {'status': 'error', 'url': url, 'msg': str(e)}
+
+
+@click.command(name='scrape_meget')
+@click.option('--workers', default=5, help='Number of parallel threads')
+@click.option('--pages', default=1, help='Number of pages to scrape from global catalog')
+@with_appcontext
+def scrape_command(workers, pages):
+    print(f"🚀 Starting GLOBAL scraping with {workers} threads...")
+
+    all_target_urls = set()
+
+    for page in range(1, pages + 1):
+        print(f"[CRAWLER] Scanning Global Catalog Page {page}...")
+        urls = get_listing_urls(page=page)
+        if urls:
+            all_target_urls.update(urls)
+        time.sleep(1)
+
+    url_list = list(all_target_urls)
+    total_urls = len(url_list)
+
+    if total_urls == 0:
+        print("[STOP] No listings found.")
+        return
+
+    print(f"📦 Queue size: {total_urls} listings. Processing parallel...")
+
+    from config import Config
+    stats = {'new': 0, 'updated': 0, 'skipped': 0, 'errors': 0}
+
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        future_to_url = {
+            executor.submit(process_url_in_thread, url, Config): url
+            for url in url_list
+        }
+
+        for i, future in enumerate(as_completed(future_to_url), 1):
+            result = future.result()
+
+            status = result['status']
+            if status == 'new':
+                stats['new'] += 1
+                curr = result.get('currency', 'UAH')
+                print(f"[{i}/{total_urls}] ✅ NEW: {result['title'][:30]}... ({result['price']} {curr})")
+            elif status == 'updated':
+                stats['updated'] += 1
+                print(f"[{i}/{total_urls}] 🔄 UPD: {result['title'][:30]}... ({result['msg']})")
+            elif status == 'skipped':
+                stats['skipped'] += 1
+            elif status == 'error':
+                stats['errors'] += 1
+                print(f"[{i}/{total_urls}] ❌ ERR: {result['msg']}")
 
     print("-" * 40)
-    print(f"[INFO] Job finished.")
     print(
-        f"Stats: New: {stats['new']} | Updated: {stats['updated']} | Skipped: {stats['skipped']} | Errors: {stats['errors']}")
+        f"🏁 FINISHED. New: {stats['new']} | Updated: {stats['updated']} | Skipped: {stats['skipped']} | Errors: {stats['errors']}")
