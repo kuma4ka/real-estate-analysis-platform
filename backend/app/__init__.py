@@ -18,4 +18,7 @@ def create_app(config_class=Config):
     from app.api import bp as api_bp
     app.register_blueprint(api_bp, url_prefix='/api')
 
+    from app.commands import scrape_command
+    app.cli.add_command(scrape_command)
+
     return app
