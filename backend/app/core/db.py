@@ -1,5 +1,8 @@
-class DB:
-    def init_app(self, app):
-        pass
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import DeclarativeBase
 
-db = DB()
+class Base(DeclarativeBase):
+    pass
+
+# Ініціалізація об'єкта DB
+db = SQLAlchemy(model_class=Base)
