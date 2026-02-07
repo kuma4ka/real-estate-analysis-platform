@@ -1,6 +1,6 @@
 from flask import Flask
 from sqlalchemy import text
-from ..config import Config
+from config import Config
 from .core.db import db
 
 
