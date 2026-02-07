@@ -14,12 +14,15 @@ def client():
         yield client
 
 
-def test_root_route(client):
-    response = client.get('/')
-    assert response.status_code == 200
-
-
 def test_health_check(client):
     response = client.get('/api/health')
+    assert response.status_code == 200
+    assert response.json == {'status': 'ok', 'service': 'real-estate-backend'}
 
-    assert response.status_code != 500
+
+def test_get_properties(client):
+    response = client.get('/api/properties')
+
+    assert response.status_code == 200
+
+    assert isinstance(response.json, list)
