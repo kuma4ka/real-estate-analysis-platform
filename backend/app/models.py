@@ -7,11 +7,11 @@ class Property(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    title = db.Column(db.String(255), nullable=False)
+    title = db.Column(db.Text, nullable=False)
     price = db.Column(db.Float, nullable=True)
     currency = db.Column(db.String(10), default="USD")
 
-    address = db.Column(db.String(255), nullable=True)
+    address = db.Column(db.Text, nullable=True)
     city = db.Column(db.String(100), nullable=True)
     district = db.Column(db.String(100), nullable=True)
 
@@ -19,7 +19,7 @@ class Property(db.Model):
     rooms = db.Column(db.Integer, nullable=True)
     floor = db.Column(db.Integer, nullable=True)
 
-    source_url = db.Column(db.String, unique=True, nullable=False)
+    source_url = db.Column(db.Text, unique=True, nullable=False)
     source_website = db.Column(db.String(50))
     description = db.Column(db.Text, nullable=True)
     images = db.Column(db.JSON, nullable=True)
@@ -28,7 +28,7 @@ class Property(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def __repr__(self):
-        return f'<Property {self.id} - {self.title}>'
+        return f'<Property {self.id} - {self.title[:20]}...>'
 
     def to_dict(self):
         return {
