@@ -1,0 +1,26 @@
+/* 1. Settings */
+@import './settings/_colors.css';
+
+/* 2. Tools (mixins, functions - empty for now) */
+
+/* 3. Generic (Resets, box-sizing) */
+/* Tailwind 'base' handles most resets */
+@tailwind base;
+
+/* 4. Elements (Unclassed HTML elements) */
+body {
+    background-color: var(--color-bg-base);
+    color: var(--color-text-main);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+/* 5. Objects (OOCSS objects - layout wrappers) */
+/* Tailwind 'components' can cover this if we define .container etc. */
+@tailwind components;
+
+/* 6. Components (UI components) */
+/* Specific component styles can go here if not using utility classes directly */
+
+/* 7. Trumps (Nav overrides, helpers) */
+@tailwind utilities;
