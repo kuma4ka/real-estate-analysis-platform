@@ -4,6 +4,7 @@ import type { Property, PropertyFilters, PaginationMeta } from './types/property
 import { fetchProperties } from './services/api';
 import PropertyCard from './components/PropertyCard';
 import FilterBar from './components/FilterBar';
+import MapComponent from './components/MapComponent';
 
 function App() {
     const { t, i18n } = useTranslation();
@@ -15,6 +16,7 @@ function App() {
         sort: 'newest'
     });
     const [loading, setLoading] = useState<boolean>(true);
+    const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
     useEffect(() => {
         const loadData = async () => {
@@ -31,10 +33,9 @@ function App() {
         };
 
         loadData();
-    }, [filters]); // Re-run when filters change
+    }, [filters]); 
 
     const handleFilterChange = (newFilters: PropertyFilters) => {
-        // Merge new filters with defaults, resetting page to 1 if not specified
         setFilters(prev => ({
             ...prev,
             ...newFilters,
@@ -76,9 +77,29 @@ function App() {
             </header>
 
             {/* Main Content */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col h-[calc(100vh-64px)]">
                 
-                <FilterBar onFilterChange={handleFilterChange} />
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                    <div className="w-full md:w-auto flex-grow">
+                         <FilterBar onFilterChange={handleFilterChange} />
+                    </div>
+                    
+                    {/* View Toggles */}
+                    <div className="flex bg-surface rounded-lg border border-border p-1">
+                        <button
+                            onClick={() => setViewMode('list')}
+                            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${viewMode === 'list' ? 'bg-primary text-white' : 'text-text-muted hover:text-text-main'}`}
+                        >
+                            List
+                        </button>
+                        <button
+                            onClick={() => setViewMode('map')}
+                            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${viewMode === 'map' ? 'bg-primary text-white' : 'text-text-muted hover:text-text-main'}`}
+                        >
+                            Map
+                        </button>
+                    </div>
+                </div>
 
                 {loading ? (
                     <div className="flex justify-center items-center py-20">
@@ -86,7 +107,7 @@ function App() {
                     </div>
                 ) : (
                     <>
-                        <div className="flex justify-between items-center mb-6">
+                        <div className="flex justify-between items-center mb-4">
                             <h2 className="text-xl font-semibold text-text-main">
                                 {t('search_results')}
                             </h2>
@@ -106,33 +127,42 @@ function App() {
                                 </button>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                                {properties.map((prop) => (
-                                    <PropertyCard key={prop.id} property={prop} />
-                                ))}
-                            </div>
-                        )}
-
-                        {/* Pagination */}
-                        {meta && meta.total_pages > 1 && (
-                            <div className="mt-12 flex justify-center items-center gap-2">
-                                <button
-                                    onClick={() => handlePageChange(filters.page! - 1)}
-                                    disabled={filters.page === 1}
-                                    className="px-4 py-2 border border-border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface transition-colors"
-                                >
-                                    ←
-                                </button>
-                                <span className="text-sm font-medium px-4">
-                                    {filters.page} / {meta.total_pages}
-                                </span>
-                                <button
-                                    onClick={() => handlePageChange(filters.page! + 1)}
-                                    disabled={filters.page === meta.total_pages}
-                                    className="px-4 py-2 border border-border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface transition-colors"
-                                >
-                                    →
-                                </button>
+                            <div className="flex-grow relative min-h-[500px]"> 
+                                {viewMode === 'list' ? (
+                                    <>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pb-8">
+                                            {properties.map((prop) => (
+                                                <PropertyCard key={prop.id} property={prop} />
+                                            ))}
+                                        </div>
+                                        
+                                        {meta && meta.total_pages > 1 && (
+                                            <div className="py-8 flex justify-center items-center gap-2">
+                                                <button
+                                                    onClick={() => handlePageChange(filters.page! - 1)}
+                                                    disabled={filters.page === 1}
+                                                    className="px-4 py-2 border border-border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface transition-colors"
+                                                >
+                                                    ←
+                                                </button>
+                                                <span className="text-sm font-medium px-4">
+                                                    {filters.page} / {meta.total_pages}
+                                                </span>
+                                                <button
+                                                    onClick={() => handlePageChange(filters.page! + 1)}
+                                                    disabled={filters.page === meta.total_pages}
+                                                    className="px-4 py-2 border border-border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface transition-colors"
+                                                >
+                                                    →
+                                                </button>
+                                            </div>
+                                        )}
+                                    </>
+                                ) : (
+                                    <div className="h-full w-full min-h-[600px] rounded-xl overflow-hidden border border-border">
+                                        <MapComponent properties={properties} />
+                                    </div>
+                                )}
                             </div>
                         )}
                     </>
