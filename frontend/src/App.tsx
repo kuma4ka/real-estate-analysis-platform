@@ -35,6 +35,28 @@ function App() {
         loadData();
     }, [filters]); 
 
+    // Separate state for map data (all items, no pagination)
+    const [mapProperties, setMapProperties] = useState<Property[]>([]);
+    const [mapLoaded, setMapLoaded] = useState(false);
+
+    useEffect(() => {
+        if (viewMode === 'map' && !mapLoaded) {
+            const loadMapData = async () => {
+                try {
+                    // Import dynamically or assume it's imported at top
+                    // check imports first
+                    const { fetchAllPropertiesForMap } = await import('./services/api');
+                    const response = await fetchAllPropertiesForMap();
+                    setMapProperties(response.data);
+                    setMapLoaded(true);
+                } catch (error) {
+                    console.error("Failed to load map properties", error);
+                }
+            };
+            loadMapData();
+        }
+    }, [viewMode, mapLoaded]); 
+
     const handleFilterChange = (newFilters: PropertyFilters) => {
         setFilters(prev => ({
             ...prev,
@@ -160,7 +182,7 @@ function App() {
                                     </>
                                 ) : (
                                     <div className="h-full w-full min-h-[600px] rounded-xl overflow-hidden border border-border">
-                                        <MapComponent properties={properties} />
+                                        <MapComponent properties={mapProperties.length > 0 ? mapProperties : properties} />
                                     </div>
                                 )}
                             </div>

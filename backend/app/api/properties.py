@@ -60,3 +60,35 @@ def get_properties():
 def get_property(id):
     prop = Property.query.get_or_404(id)
     return jsonify(property_schema.dump(prop))
+
+
+@bp.route('/properties/map', methods=['GET'])
+def get_map_properties():
+    # Fetch all properties with coordinates
+    # Return lightweight objects to avoid heavy payload
+    query = Property.query.filter(Property.latitude.isnot(None), Property.longitude.isnot(None))
+    
+    # Optional filtering can be applied here too if needed, but for now let's return all valid geocoded props
+    properties = query.all()
+    
+    # Custom lightweight serialization but matching Property interface keys
+    data = [{
+        'id': p.id,
+        'title': p.title,
+        'price': p.price,
+        'currency': p.currency,
+        'address': p.address,
+        'lat': p.latitude,
+        'lng': p.longitude,
+        'city': p.city,
+        'district': p.district,
+        'area': p.area,
+        'rooms': p.rooms,
+        'floor': p.floor,
+        'description': None, # Keep payload light
+        'images': p.images[:1] if p.images else [], # Send 1 image for potential popup
+        'source_url': p.source_url,
+        'created_at': p.created_at.isoformat() if p.created_at else None
+    } for p in properties]
+    
+    return jsonify({'data': data, 'count': len(data)})
