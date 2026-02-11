@@ -52,8 +52,17 @@ interface MapComponentProps {
 const MapComponent: React.FC<MapComponentProps> = ({ properties }) => {
     const { t } = useTranslation();
     
-    // Mock coordinates based on City
     const propertiesWithCoords = React.useMemo(() => properties.map(p => {
+        // If we have real coordinates from backend, use them
+        if (p.lat && p.lng) {
+            return {
+                ...p,
+                lat: p.lat,
+                lng: p.lng
+            };
+        }
+
+        // Fallback: Mock coordinates based on City if no real coords
         // pseudo-random based on id to be deterministic
         const pseudoRandom = (seed: number) => {
             const x = Math.sin(seed++) * 10000;
@@ -68,6 +77,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ properties }) => {
 
         return {
             ...p,
+            // Random spread around city center (~5-10km radius)
             lat: baseLat + (pseudoRandom(p.id) - 0.5) * 0.1,
             lng: baseLng + (pseudoRandom(p.id + 1000) - 0.5) * 0.1
         };

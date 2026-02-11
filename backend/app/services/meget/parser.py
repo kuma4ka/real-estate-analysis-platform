@@ -60,8 +60,11 @@ class ListingParser:
     def get_location(self):
         city = None
         district = None
-        address = self.title[:100]
+        address = None
 
+        # Method 1: Extract from specific address elements if available (often in .prop_geo or similar)
+        # Note: Meget structure varies, capturing specific patterns
+        
         # Breadcrumbs Analysis
         breadcrumbs = self.soup.find('div', class_='breadcrumbs') or self.soup.find('ul', class_='breadcrumb')
         if breadcrumbs:
@@ -70,46 +73,63 @@ class ListingParser:
             clean_crumbs = [c for c in crumbs if
                             c not in ['Главная', 'Продажа квартир', 'Продажа недвижимости', 'Meget', 'Недвижимость']]
 
-            # Find City
-            for crumb in clean_crumbs:
+            # Find City and District in crumbs
+            for i, crumb in enumerate(clean_crumbs):
                 norm = CITIES_UA.get(crumb, crumb)
                 if norm in CITIES_UA.values():
                     city = norm
+                    # Potential district follows city
+                    if i + 1 < len(clean_crumbs):
+                        d_candidate = clean_crumbs[i + 1]
+                        if "р-н" in d_candidate or "район" in d_candidate.lower():
+                            district = d_candidate
                     break
-
-            # Find District
-            if city:
-                idx = -1
-                for i, c in enumerate(clean_crumbs):
-                    if CITIES_UA.get(c, c) == city:
-                        idx = i;
-                        break
-                if idx != -1 and idx + 1 < len(clean_crumbs):
-                    d_candidate = clean_crumbs[idx + 1]
-                    if "р-н" in d_candidate or "район" in d_candidate.lower():
-                        district = d_candidate
-
-        # Fallback City Search in Title
+        
+        # Fallback City
         if not city:
             for k, v in CITIES_UA.items():
                 if k in self.title:
                     city = v;
                     break
 
-        # Build Address
-        if city:
-            city_regex = r'(' + city + r'|' + city[:-1] + r')'
-            addr_match = re.search(f"{city_regex}" + r'[\s,]+(.*?)(?:рядом метро|Объявление|Оголошення|$)',
-                                   self.page_text, re.IGNORECASE)
+        # Address Logic: Try to find a header or span that typically holds the street
+        # Often "Продажа 2к квартиры ул. Небесной Сотни" -> address is "ул. Небесной Сотни"
+        # Removing "Продажа ... квартиры" prefix
+        
+        title_text = self.title
+        
+        # Common prefixes to strip
+        prefixes = [r'Продажа.*?квартиры', r'Продам.*?квартиру',r'Объявление №\d+ - ']
+        cleaned_title = title_text
+        for p in prefixes:
+            cleaned_title = re.sub(p, '', cleaned_title, flags=re.IGNORECASE).strip()
+            
+        # If what remains looks like an address (has street marker or just text)
+        if len(cleaned_title) > 3 and cleaned_title != title_text:
+             address = cleaned_title
+        elif city and city in title_text:
+             # Try to extract text after city invocation if present
+             pass
 
-            if addr_match:
-                raw_tail = addr_match.group(2).strip()
-                for stop in ["Объявление", "Оголошення", "Продажа", "Цена", "Meget", "ЖК "]:
-                    if stop in raw_tail: raw_tail = raw_tail.split(stop)[0]
-                address = f"{city}, {raw_tail.strip().rstrip('.,')}"
-            else:
-                address = f"{city}"
-                if district: address += f", {district}"
+        # Validating Address
+        if not address or address == title_text:
+             # Fallback: try to find something that looks like street in content
+             # This is hard without specific selector. 
+             # Let's use the breadcrumb-constructed address if nothing better
+             parts = []
+             if city: parts.append(city)
+             if district: parts.append(district)
+             
+             # Try to find street in title if we haven't yet
+             street_match = re.search(r'(ул\.|вул\.|просп\.|пров\.|бульв\.|майдан|наб\.|шосе).*', self.title, re.IGNORECASE)
+             if street_match:
+                 address = street_match.group(0).strip()
+             else:
+                 address = ", ".join(parts) if parts else self.title[:100]
+
+        # Ensure city is in address
+        if city and address and city not in address:
+            address = f"{city}, {address}"
 
         return address, city, district
 

@@ -8,10 +8,32 @@ from app.models import Property
 from app.services.meget import scrape_meget_listing, get_listing_urls
 
 
+from geopy.geocoders import Nominatim
+from geopy.exc import GeocoderTimedOut, GeocoderServiceError
+
+# Initialize Geocoder (user_agent is required by Nominatim policy)
+geocoder = Nominatim(user_agent="real_estate_platform_edu_project")
+
+def geocode_address(address_str):
+    try:
+        location = geocoder.geocode(address_str, timeout=10)
+        if location:
+            return location.latitude, location.longitude
+        return None, None
+    except (GeocoderTimedOut, GeocoderServiceError) as e:
+        print(f"⚠️ Geocoding error for {address_str}: {e}")
+        return None, None
+    except Exception as e:
+        print(f"⚠️ Unexpected geocoding error: {e}")
+        return None, None
+
 def process_url_in_thread(url, app_config):
     app = create_app(app_config)
 
     with app.app_context():
+        # Small delay to respect scraper and geocoder limits
+        time.sleep(0.5) 
+        
         data = scrape_meget_listing(url)
         if not data:
             return {'status': 'error', 'url': url, 'msg': 'Scrape failed'}
@@ -33,8 +55,25 @@ def process_url_in_thread(url, app_config):
                     existing_prop.address = data['address']
                     existing_prop.city = data['city']
                     existing_prop.district = data['district']
+                    
+                    # Geocode new address
+                    lat, lng = geocode_address(data['address'])
+                    if lat and lng:
+                        existing_prop.latitude = lat
+                        existing_prop.longitude = lng
+                        changes.append("geolocation")
+                    
                     if "address" not in changes: changes.append("address")
                     needs_update = True
+                
+                # If address didn't change but we don't have coords, try to geocode
+                if not existing_prop.latitude and existing_prop.address:
+                     lat, lng = geocode_address(existing_prop.address)
+                     if lat and lng:
+                        existing_prop.latitude = lat
+                        existing_prop.longitude = lng
+                        changes.append("geolocation (backfill)")
+                        needs_update = True
 
                 if not existing_prop.images and data['images']:
                     existing_prop.images = data['images']
@@ -48,6 +87,11 @@ def process_url_in_thread(url, app_config):
                 else:
                     return {'status': 'skipped', 'url': url}
             else:
+                # Geocode new property
+                lat, lng = None, None
+                if data.get('address'):
+                    lat, lng = geocode_address(data['address'])
+
                 new_prop = Property(
                     title=data['title'],
                     source_url=data['source_url'],
@@ -57,6 +101,8 @@ def process_url_in_thread(url, app_config):
                     address=data.get('address'),
                     city=data.get('city'),
                     district=data.get('district'),
+                    latitude=lat,
+                    longitude=lng,
                     area=data.get('area'),
                     rooms=data.get('rooms'),
                     images=data.get('images'),

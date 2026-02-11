@@ -4,6 +4,8 @@ export interface Property {
     price: number;
     currency: string;
     address: string | null;
+    lat: number | null;
+    lng: number | null;
     city: string | null;
     district: string | null;
     area: number | null;
