@@ -27,15 +27,15 @@ def get_lat_long(address, attempt=1):
             cleaned = re.sub(r'\s+', ' ', cleaned)
             return cleaned.strip(", ")
 
-        # Attempt 1: Raw address
-        location = geolocator.geocode(address, timeout=10)
+        # Attempt 1: Raw address + Country context
+        location = geolocator.geocode(f"{address}, Ukraine", timeout=10)
         
         # Attempt 2: Cleaned address (remove region/district keywords)
         if not location:
             cleaned = clean_for_geocoding(address)
             if cleaned != address:
                 print(f"   ⚠️ Geocoding retry with cleaned: '{cleaned}'")
-                location = geolocator.geocode(cleaned, timeout=10)
+                location = geolocator.geocode(f"{cleaned}, Ukraine", timeout=10)
 
         # Attempt 3: Try simplified "City, Street" (Regex to drop middle parts if complex)
         if not location:
@@ -47,7 +47,7 @@ def get_lat_long(address, attempt=1):
                  simplified = f"{parts[0]}, {', '.join(parts[-2:])}"
                  if simplified != address and simplified != cleaned:
                      print(f"   ⚠️ Geocoding retry with simplified: '{simplified}'")
-                     location = geolocator.geocode(simplified, timeout=10)
+                     location = geolocator.geocode(f"{simplified}, Ukraine", timeout=10)
 
         if location:
             return location.latitude, location.longitude
