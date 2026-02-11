@@ -11,17 +11,49 @@ from app.services.meget import scrape_meget_listing, get_listing_urls
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut, GeocoderServiceError
 
-# Initialize Geocoder (user_agent is required by Nominatim policy)
-geocoder = Nominatim(user_agent="real_estate_platform_edu_project")
-
-def geocode_address(address_str):
+def get_lat_long(address, attempt=1):
     try:
-        location = geocoder.geocode(address_str, timeout=10)
+        geolocator = Nominatim(user_agent="meget_scraper_v2")
+        
+        # Helper to clean address for geocoding
+        def clean_for_geocoding(addr):
+            # Remove "область", "район", "р-н" which confuse Nominatim sometimes
+            import re
+            cleaned = re.sub(r'\b(область|район|р-н)\b', '', addr, flags=re.IGNORECASE)
+            # Remove "No." "№" etc
+            cleaned = re.sub(r'[№#]', '', cleaned)
+            # Remove multiple spaces/commas
+            cleaned = re.sub(r'\s*,\s*', ', ', cleaned)
+            cleaned = re.sub(r'\s+', ' ', cleaned)
+            return cleaned.strip(", ")
+
+        # Attempt 1: Raw address
+        location = geolocator.geocode(address, timeout=10)
+        
+        # Attempt 2: Cleaned address (remove region/district keywords)
+        if not location:
+            cleaned = clean_for_geocoding(address)
+            if cleaned != address:
+                print(f"   ⚠️ Geocoding retry with cleaned: '{cleaned}'")
+                location = geolocator.geocode(cleaned, timeout=10)
+
+        # Attempt 3: Try simplified "City, Street" (Regex to drop middle parts if complex)
+        if not location:
+             # If address is like "City, District, Street...", try "City, Street..."
+             parts = [p.strip() for p in address.split(',')]
+             if len(parts) > 2:
+                 # Assume Part 0 is City, last part is Street/Number. Skip middle.
+                 # E.g. "Днепр, Индустриальный р-н, Хмельницкого Б., 11А" -> "Днепр, Хмельницкого Б., 11А"
+                 simplified = f"{parts[0]}, {', '.join(parts[-2:])}"
+                 if simplified != address and simplified != cleaned:
+                     print(f"   ⚠️ Geocoding retry with simplified: '{simplified}'")
+                     location = geolocator.geocode(simplified, timeout=10)
+
         if location:
             return location.latitude, location.longitude
         return None, None
     except (GeocoderTimedOut, GeocoderServiceError) as e:
-        print(f"⚠️ Geocoding error for {address_str}: {e}")
+        print(f"⚠️ Geocoding error for {address}: {e}")
         return None, None
     except Exception as e:
         print(f"⚠️ Unexpected geocoding error: {e}")
@@ -57,23 +89,26 @@ def process_url_in_thread(url, app_config):
                     existing_prop.district = data['district']
                     
                     # Geocode new address
-                    lat, lng = geocode_address(data['address'])
+                    lat, lng = get_lat_long(data['address'])
                     if lat and lng:
                         existing_prop.latitude = lat
                         existing_prop.longitude = lng
                         changes.append("geolocation")
                     
-                    if "address" not in changes: changes.append("address")
+                    if "address" not in changes: 
+                        changes.append("address")
                     needs_update = True
                 
                 # If address didn't change but we don't have coords, try to geocode
                 if not existing_prop.latitude and existing_prop.address:
-                     lat, lng = geocode_address(existing_prop.address)
-                     if lat and lng:
+                    lat, lng = get_lat_long(existing_prop.address)
+                    if lat and lng:
                         existing_prop.latitude = lat
                         existing_prop.longitude = lng
                         changes.append("geolocation (backfill)")
                         needs_update = True
+                    else:
+                        print(f"Failed to update geocode for {data['address']}")
 
                 if not existing_prop.images and data['images']:
                     existing_prop.images = data['images']
@@ -90,7 +125,7 @@ def process_url_in_thread(url, app_config):
                 # Geocode new property
                 lat, lng = None, None
                 if data.get('address'):
-                    lat, lng = geocode_address(data['address'])
+                    lat, lng = get_lat_long(data['address'])
 
                 new_prop = Property(
                     title=data['title'],

@@ -53,21 +53,22 @@ const MapComponent: React.FC<MapComponentProps> = ({ properties }) => {
     const { t } = useTranslation();
     
     const propertiesWithCoords = React.useMemo(() => properties.map(p => {
-        // If we have real coordinates from backend, use them
-        if (p.lat && p.lng) {
-            return {
-                ...p,
-                lat: p.lat,
-                lng: p.lng
-            };
-        }
-
-        // Fallback: Mock coordinates based on City if no real coords
         // pseudo-random based on id to be deterministic
         const pseudoRandom = (seed: number) => {
             const x = Math.sin(seed++) * 10000;
             return x - Math.floor(x);
         };
+
+        // If we have real coordinates from backend, use them
+        if (p.lat && p.lng) {
+            return {
+                ...p,
+                lat: p.lat + (pseudoRandom(p.id) - 0.5) * 0.0005, // Slight jitter (~50m) to avoid exact overlap
+                lng: p.lng + (pseudoRandom(p.id + 1000) - 0.5) * 0.0005
+            };
+        }
+
+        // Fallback: Mock coordinates based on City if no real coords
         
         const cityKey = Object.keys(CITY_COORDINATES).find(key => 
             p.city && p.city.includes(key)
