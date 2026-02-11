@@ -108,5 +108,4 @@ secrets.json
 # === Project Documentation & Artifacts ===
 # Ignore PDF files as requested to prevent pushing large binaries or confidential docs
 *.pdf
-# Exception: If you want to force add a README.pdf, un-comment below
-#!README.pdf
+.ipynb_checkpoints
