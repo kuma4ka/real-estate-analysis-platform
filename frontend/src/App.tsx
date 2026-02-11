@@ -22,7 +22,6 @@ function App() {
         const loadData = async () => {
             setLoading(true);
             try {
-                // If map mode, maybe fetch more items or all? For now keep pagination
                 const response = await fetchProperties(filters);
                 setProperties(response.data);
                 setMeta(response.meta);
@@ -137,7 +136,6 @@ function App() {
                                             ))}
                                         </div>
                                         
-                                        {/* Pagination only for List mode usually */}
                                         {meta && meta.total_pages > 1 && (
                                             <div className="py-8 flex justify-center items-center gap-2">
                                                 <button

@@ -5,7 +5,6 @@ import type { Property } from '../types/property';
 import { useTranslation } from 'react-i18next';
 import L from 'leaflet';
 
-// Fix for default Leaflet marker icons in React
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 
@@ -53,7 +52,7 @@ interface MapComponentProps {
 const MapComponent: React.FC<MapComponentProps> = ({ properties }) => {
     const { t } = useTranslation();
     
-    // TEMPORARY: Mock coordinates based on City
+    // Mock coordinates based on City
     const propertiesWithCoords = React.useMemo(() => properties.map(p => {
         // pseudo-random based on id to be deterministic
         const pseudoRandom = (seed: number) => {
@@ -61,7 +60,6 @@ const MapComponent: React.FC<MapComponentProps> = ({ properties }) => {
             return x - Math.floor(x);
         };
         
-        // Try to find city coordinates, fuzzy search could be better but this is simple
         const cityKey = Object.keys(CITY_COORDINATES).find(key => 
             p.city && p.city.includes(key)
         ) || 'Default';
@@ -70,7 +68,6 @@ const MapComponent: React.FC<MapComponentProps> = ({ properties }) => {
 
         return {
             ...p,
-            // Random spread around city center (~5-10km radius)
             lat: baseLat + (pseudoRandom(p.id) - 0.5) * 0.1,
             lng: baseLng + (pseudoRandom(p.id + 1000) - 0.5) * 0.1
         };

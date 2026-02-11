@@ -1,6 +1,6 @@
 import type { PropertiesResponse, PropertyFilters } from '../types/property';
 
-const API_BASE_URL = '/api/v1'; // Based on backend/app/__init__.py: url_prefix='/api/v1'
+const API_BASE_URL = '/api/v1';
 
 export const fetchProperties = async (filters: PropertyFilters = {}): Promise<PropertiesResponse> => {
     try {
