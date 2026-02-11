@@ -62,74 +62,105 @@ class ListingParser:
         district = None
         address = None
 
-        # Method 1: Extract from specific address elements if available (often in .prop_geo or similar)
-        # Note: Meget structure varies, capturing specific patterns
-        
-        # Breadcrumbs Analysis
-        breadcrumbs = self.soup.find('div', class_='breadcrumbs') or self.soup.find('ul', class_='breadcrumb')
-        if breadcrumbs:
-            crumbs = [a.text.strip() for a in breadcrumbs.find_all('a')]
-            # Filter crumbs
-            clean_crumbs = [c for c in crumbs if
-                            c not in ['Главная', 'Продажа квартир', 'Продажа недвижимости', 'Meget', 'Недвижимость']]
+        # 0. Primary Source: <address class="address-sec"> (Most reliable for full address)
+        address_sec = self.soup.find('address', class_='address-sec')
+        if address_sec:
+            h2 = address_sec.find('h2') or address_sec.find('h1') or address_sec.find(class_='detail-page-topic')
+            if h2:
+                # City is often in <a> tag
+                city_link = h2.find('a')
+                if city_link:
+                    city_text = city_link.text.strip()
+                    # Validate city against config
+                    norm = CITIES_UA.get(city_text, city_text)
+                    if norm in CITIES_UA.values():
+                        city = norm
+                    else:
+                        city = city_text # Trust the link text even if not in config
+                
+                # Address text is the full text of h2
+                full_text = h2.get_text(" ", strip=True)
+                # Clean up multiple spaces and formatting
+                address = re.sub(r'\s+', ' ', full_text)
+                address = re.sub(r'\s+,\s*', ', ', address)
 
-            # Find City and District in crumbs
-            for i, crumb in enumerate(clean_crumbs):
-                norm = CITIES_UA.get(crumb, crumb)
-                if norm in CITIES_UA.values():
-                    city = norm
-                    # Potential district follows city
-                    if i + 1 < len(clean_crumbs):
-                        d_candidate = clean_crumbs[i + 1]
-                        if "р-н" in d_candidate or "район" in d_candidate.lower():
-                            district = d_candidate
-                    break
+        # 1. Breadcrumbs Analysis (Secondary source for City/District if parsing failed to get them)
+        if not city or not district:
+            breadcrumbs = self.soup.find('div', class_='breadcrumbs') or self.soup.find('ul', class_='breadcrumb')
+            if breadcrumbs:
+                crumbs = [a.text.strip() for a in breadcrumbs.find_all('a')]
+                clean_crumbs = [c for c in crumbs if
+                                c not in ['Главная', 'Продажа квартир', 'Продажа недвижимости', 'Meget', 'Недвижимость']]
+
+                for i, crumb in enumerate(clean_crumbs):
+                    norm = CITIES_UA.get(crumb, crumb)
+                    if norm in CITIES_UA.values():
+                        if not city: city = norm
+                        # Potential district follows city
+                        if i + 1 < len(clean_crumbs):
+                            d_candidate = clean_crumbs[i + 1]
+                            if "р-н" in d_candidate or "район" in d_candidate.lower():
+                                district = d_candidate
+                        break
         
-        # Fallback City
+        # Fallback City (Last resort)
         if not city:
+            # Check title first
             for k, v in CITIES_UA.items():
                 if k in self.title:
                     city = v;
                     break
+            # Only default to Kyiv if we have ABSOLUTELY no clue and it's kiev.ua
+            # But be careful, Meget has subdomain specific cookies or logic, but URL is often mege.kiev.ua for all.
+            # Let's REMOVE the hard default to Kyiv unless title text strongly implies it or we are desperate.
+            # Better to have None than wrong city.
+            if not city and "kiev.ua" in self.url and "Киев" in self.title:
+                 city = "Київ"
 
-        # Address Logic: Try to find a header or span that typically holds the street
-        # Often "Продажа 2к квартиры ул. Небесной Сотни" -> address is "ул. Небесной Сотни"
-        # Removing "Продажа ... квартиры" prefix
-        
-        title_text = self.title
-        
-        # Common prefixes to strip
-        prefixes = [r'Продажа.*?квартиры', r'Продам.*?квартиру',r'Объявление №\d+ - ']
-        cleaned_title = title_text
-        for p in prefixes:
-            cleaned_title = re.sub(p, '', cleaned_title, flags=re.IGNORECASE).strip()
+
+        # 2. Address Logic (Fallback if address-sec method failed)
+        if not address:
+            title_text = self.title
             
-        # If what remains looks like an address (has street marker or just text)
-        if len(cleaned_title) > 3 and cleaned_title != title_text:
-             address = cleaned_title
-        elif city and city in title_text:
-             # Try to extract text after city invocation if present
-             pass
+            # Extended prefixes to strip (including room counts like "1-ком.")
+            prefixes = [
+                r'Продажа.*?квартиры', r'Продам.*?квартиру', r'Объявление №\d+ - ',
+                r'\d+\s*-?\s*ком\.?', r'\d+\s*-?\s*к\.', r'без комиссии'
+            ]
+            
+            cleaned_title = title_text
+            for p in prefixes:
+                cleaned_title = re.sub(p, '', cleaned_title, flags=re.IGNORECASE).strip()
+                
+            # Clean leading/trailing punctuation
+            cleaned_title = cleaned_title.strip(" .,-")
 
-        # Validating Address
-        if not address or address == title_text:
-             # Fallback: try to find something that looks like street in content
-             # This is hard without specific selector. 
-             # Let's use the breadcrumb-constructed address if nothing better
-             parts = []
-             if city: parts.append(city)
-             if district: parts.append(district)
-             
-             # Try to find street in title if we haven't yet
-             street_match = re.search(r'(ул\.|вул\.|просп\.|пров\.|бульв\.|майдан|наб\.|шосе).*', self.title, re.IGNORECASE)
-             if street_match:
-                 address = street_match.group(0).strip()
-             else:
-                 address = ", ".join(parts) if parts else self.title[:100]
+            # Validation: Does it look like an address?
+            if len(cleaned_title) > 4 and cleaned_title.lower() != title_text.lower():
+                 # Check if it contains street markers
+                 street_markers = [
+                     'ул.', 'вул.', 'просп.', 'пров.', 'бульв.', 'майдан', 'наб.', 'шосе', 
+                     'узвіз', 'тупик', 'площа', 'квартал', 'алея', 'проспект', 'улица', 'переулок'
+                 ]
+                 if any(m in cleaned_title.lower() for m in street_markers):
+                     address = cleaned_title
+                 else:
+                     if not re.match(r'^\d+[\s-]*ком\.?$', cleaned_title, re.IGNORECASE):
+                         address = cleaned_title
 
-        # Ensure city is in address
+            # If title extraction failed, try breadcrumbs composition
+            if not address:
+                 parts = []
+                 if city: parts.append(city)
+                 if district: parts.append(district)
+                 address = ", ".join(parts) if parts else None
+
+        # Final Polish: Ensure city is in address for geocoder context
+        # If address was from address-sec, it likely includes city.
         if city and address and city not in address:
             address = f"{city}, {address}"
+        elif city and not address:
+            address = city 
 
         return address, city, district
 
