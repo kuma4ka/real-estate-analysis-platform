@@ -1,0 +1,28 @@
+:root {
+    /* Brand Colors */
+    --color-primary: #4F46E5; /* Indigo 600 */
+    --color-primary-hover: #4338CA; /* Indigo 700 */
+    --color-secondary: #0EA5E9; /* Sky 500 */
+    
+    /* Functional Colors */
+    --color-success: #10B981; /* Emerald 500 */
+    --color-warning: #F59E0B; /* Amber 500 */
+    --color-error: #EF4444; /* Red 500 */
+
+    /* UI Colors */
+    --color-bg-base: #F9FAFB; /* Gray 50 */
+    --color-bg-surface: #FFFFFF; /* White */
+    --color-text-main: #111827; /* Gray 900 */
+    --color-text-muted: #6B7280; /* Gray 500 */
+    --color-border: #E5E7EB; /* Gray 200 */
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --color-bg-base: #0f172a; /* Slate 900 */
+        --color-bg-surface: #1e293b; /* Slate 800 */
+        --color-text-main: #f8fafc; /* Slate 50 */
+        --color-text-muted: #94a3b8; /* Slate 400 */
+        --color-border: #334155; /* Slate 700 */
+    }
+}
