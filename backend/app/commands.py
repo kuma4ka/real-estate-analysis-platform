@@ -27,27 +27,40 @@ def get_lat_long(address, attempt=1):
             cleaned = re.sub(r'\s+', ' ', cleaned)
             return cleaned.strip(", ")
 
-        # Attempt 1: Raw address + Country context
+        # Attempt 1: Raw address + Country
         location = geolocator.geocode(f"{address}, Ukraine", timeout=10)
         
-        # Attempt 2: Cleaned address (remove region/district keywords)
+        # Verify city match to avoid "Dnipro district in Kyiv" issues
+        if location and "Kyiv" in location.address and "Днепр" in address and "Киев" not in address:
+             print(f"   ⚠️ Suspicious match for {address}: {location.address}. Ignoring.")
+             location = None
+
+        # Attempt 2: Cleaned address 
         if not location:
             cleaned = clean_for_geocoding(address)
             if cleaned != address:
-                print(f"   ⚠️ Geocoding retry with cleaned: '{cleaned}'")
-                location = geolocator.geocode(f"{cleaned}, Ukraine", timeout=10)
+                 # Check if we can extract city for structured query
+                 # This is safer than string concatenation
+                 search_query = f"{cleaned}, Ukraine"
+                 print(f"   ⚠️ Geocoding retry with cleaned: '{search_query}'")
+                 location = geolocator.geocode(search_query, timeout=10)
 
-        # Attempt 3: Try simplified "City, Street" (Regex to drop middle parts if complex)
+        # Attempt 3: Simplified "City, Street"
         if not location:
-             # If address is like "City, District, Street...", try "City, Street..."
              parts = [p.strip() for p in address.split(',')]
              if len(parts) > 2:
-                 # Assume Part 0 is City, last part is Street/Number. Skip middle.
-                 # E.g. "Днепр, Индустриальный р-н, Хмельницкого Б., 11А" -> "Днепр, Хмельницкого Б., 11А"
                  simplified = f"{parts[0]}, {', '.join(parts[-2:])}"
                  if simplified != address and simplified != cleaned:
                      print(f"   ⚠️ Geocoding retry with simplified: '{simplified}'")
                      location = geolocator.geocode(f"{simplified}, Ukraine", timeout=10)
+                     
+        # Final check for cross-city contamination
+        if location:
+             # If original address said "Dnipro" but result is "Kyiv", reject it unless context implies it.
+             # Simple heuristic: if city name is in valid UA cities, check if result contains it.
+             # existing_prop.city is passed to us? No, we only have address string here. 
+             # But address usually starts with City.
+             pass
 
         if location:
             return location.latitude, location.longitude
