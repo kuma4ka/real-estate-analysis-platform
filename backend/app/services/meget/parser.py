@@ -199,20 +199,35 @@ class ListingParser:
         return address, city, district, region
 
     def get_images(self):
+        seen = set()
         images = []
-        main = self.soup.find('div', class_='image')
-        if main and main.find('img'):
-            src = main.find('img').get('src')
-            if src:
-                images.append(urljoin(self.url, src))
+        skip_patterns = ('contact-photo', 'logo', 'icon', 'avatar', 'banner')
 
-        for t in self.soup.find_all('div', class_='small_image'):
-            img = t.find('img')
-            if img:
+        containers = (
+            self.soup.find_all('div', class_='photo-gallery-area')
+            + self.soup.find_all('div', class_=lambda c: c and 'image-slider' in c and 'wrapper' not in c)
+        )
+
+        for container in containers:
+            for img in container.find_all('img'):
                 src = img.get('src') or img.get('data-src')
-                if src:
-                    full_src = src.replace('s.jpg', '.jpg')
-                    images.append(urljoin(self.url, full_src))
+                if not src:
+                    continue
+                if any(p in src for p in skip_patterns):
+                    continue
+                full_url = urljoin(self.url, src)
+                if full_url not in seen:
+                    seen.add(full_url)
+                    images.append(full_url)
+
+        if not images:
+            offer_img = self.soup.find('div', class_='offer-image')
+            if offer_img:
+                style = offer_img.get('style', '')
+                match = re.search(r"url\(['\"]?([^'\")\s]+)", style)
+                if match:
+                    images.append(urljoin(self.url, match.group(1)))
+
         return images
 
     def parse(self):
