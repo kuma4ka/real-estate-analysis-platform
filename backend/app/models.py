@@ -16,6 +16,7 @@ class Property(db.Model):
     longitude = db.Column(db.Float, nullable=True)
     city = db.Column(db.String(100), nullable=True)
     district = db.Column(db.String(100), nullable=True)
+    geocode_precision = db.Column(db.String(20), nullable=True)
 
     area = db.Column(db.Float, nullable=True)
     rooms = db.Column(db.Integer, nullable=True)
