@@ -5,6 +5,7 @@ import { fetchProperties } from './services/api';
 import PropertyCard from './components/PropertyCard';
 import FilterBar from './components/FilterBar';
 import MapComponent from './components/MapComponent';
+import AnalyticsDashboard from './components/AnalyticsDashboard';
 
 function App() {
     const { t, i18n } = useTranslation();
@@ -16,7 +17,7 @@ function App() {
         sort: 'newest'
     });
     const [loading, setLoading] = useState<boolean>(true);
-    const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+    const [viewMode, setViewMode] = useState<'list' | 'map' | 'analytics'>('list');
 
     useEffect(() => {
         const loadData = async () => {
@@ -114,6 +115,12 @@ function App() {
                         >
                             {t('view_map')}
                         </button>
+                        <button
+                            onClick={() => setViewMode('analytics')}
+                            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${viewMode === 'analytics' ? 'bg-primary text-white' : 'text-text-muted hover:text-text-main'}`}
+                        >
+                            {t('view_analytics')}
+                        </button>
                     </div>
                 </div>
 
@@ -174,10 +181,12 @@ function App() {
                                             </div>
                                         )}
                                     </>
-                                ) : (
+                                ) : viewMode === 'map' ? (
                                     <div className="h-full w-full min-h-[600px] rounded-xl overflow-hidden border border-border">
                                         <MapComponent properties={mapProperties.length > 0 ? mapProperties : properties} />
                                     </div>
+                                ) : (
+                                    <AnalyticsDashboard />
                                 )}
                             </div>
                         )}

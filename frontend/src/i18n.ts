@@ -28,6 +28,16 @@ const resources = {
             "view_map": "Map",
             "items_count": "{{count}} items",
             "no_image": "No Image",
+            "view_analytics": "Analytics",
+            "analytics_total": "Total Listings",
+            "analytics_avg_price": "Avg. Price (USD)",
+            "analytics_avg_area": "Avg. Area",
+            "analytics_by_city": "Listings by City",
+            "analytics_by_rooms": "By Room Count",
+            "analytics_price_dist": "Price Distribution",
+            "analytics_trend": "Daily Trend",
+            "analytics_count": "Count",
+            "analytics_error": "Failed to load analytics",
         }
     },
     uk: {
@@ -55,6 +65,16 @@ const resources = {
             "view_map": "Карта",
             "items_count": "{{count}} оголошень",
             "no_image": "Без фото",
+            "view_analytics": "Аналітика",
+            "analytics_total": "Всього оголошень",
+            "analytics_avg_price": "Сер. ціна (USD)",
+            "analytics_avg_area": "Сер. площа",
+            "analytics_by_city": "По містах",
+            "analytics_by_rooms": "По кімнатах",
+            "analytics_price_dist": "Розподіл цін",
+            "analytics_trend": "Тренд за днями",
+            "analytics_count": "Кількість",
+            "analytics_error": "Не вдалося завантажити аналітику",
         }
     }
 };
