@@ -28,7 +28,7 @@ export const fetchProperties = async (filters: PropertyFilters = {}): Promise<Pr
     }
 };
 
-export const fetchAllPropertiesForMap = async (): Promise<{ data: any[], count: number }> => {
+export const fetchAllPropertiesForMap = async (): Promise<{ data: { id: number; lat: number; lng: number; title: string; price: number }[], count: number }> => {
     try {
         const response = await fetch(`${API_BASE_URL}/properties/map`);
         if (!response.ok) {
@@ -37,6 +37,29 @@ export const fetchAllPropertiesForMap = async (): Promise<{ data: any[], count: 
         return await response.json();
     } catch (error) {
         console.error('Error fetching map properties:', error);
+        throw error;
+    }
+};
+
+export interface StatsData {
+    total_listings: number;
+    avg_price_usd: number;
+    avg_area: number;
+    by_city: { city: string; count: number; avg_price: number }[];
+    by_rooms: { rooms: number; count: number; avg_price: number }[];
+    price_histogram: { range: string; count: number }[];
+    recent_trend: { date: string; count: number; avg_price: number }[];
+}
+
+export const fetchStats = async (): Promise<StatsData> => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/stats`);
+        if (!response.ok) {
+            throw new Error(`API Error: ${response.statusText}`);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching stats:', error);
         throw error;
     }
 };
