@@ -43,18 +43,13 @@ const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange }) => {
             {/* City */}
             <div className="mb-4">
                 <label className="block text-sm font-medium text-text-muted mb-1.5">{t('city')}</label>
-                <select
+                <input
+                    type="text"
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
+                    placeholder={t('city')}
                     className="w-full px-3 py-2 border border-border rounded-lg bg-background text-text-main text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
-                >
-                    <option value="">{t('city')}</option>
-                    <option value="Kyiv">Kyiv</option>
-                    <option value="Odessa">Odessa</option>
-                    <option value="Lviv">Lviv</option>
-                    <option value="Dnipro">Dnipro</option>
-                    <option value="Kharkiv">Kharkiv</option>
-                </select>
+                />
             </div>
 
             {/* Price Range */}
@@ -65,7 +60,11 @@ const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange }) => {
                         <input
                             type="number"
                             value={priceMin}
-                            onChange={(e) => setPriceMin(e.target.value ? parseFloat(e.target.value) : '')}
+                            min={0}
+                            onChange={(e) => {
+                                const val = e.target.value ? parseFloat(e.target.value) : '';
+                                setPriceMin(val !== '' && val < 0 ? 0 : val);
+                            }}
                             placeholder="0"
                             className="w-full px-3 py-2 border border-border rounded-lg bg-background text-text-main text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
                         />
@@ -75,7 +74,11 @@ const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange }) => {
                         <input
                             type="number"
                             value={priceMax}
-                            onChange={(e) => setPriceMax(e.target.value ? parseFloat(e.target.value) : '')}
+                            min={0}
+                            onChange={(e) => {
+                                const val = e.target.value ? parseFloat(e.target.value) : '';
+                                setPriceMax(val !== '' && val < 0 ? 0 : val);
+                            }}
                             placeholder="Max"
                             className="w-full px-3 py-2 border border-border rounded-lg bg-background text-text-main text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
                         />
