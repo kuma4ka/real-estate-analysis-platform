@@ -325,3 +325,50 @@ def regeocode_ids_command(ids_str):
 
     db.session.commit()
     print("Done.")
+
+
+@click.command('backfill-images')
+@click.option('--limit', default=0, help='Max properties to process (0 = all)')
+@with_appcontext
+def backfill_images(limit):
+    """Re-fetch images for properties that have none."""
+    from app.services.meget import fetch_html
+    from app.services.meget.parser import ListingParser
+
+    query = Property.query.filter(
+        db.or_(Property.images.is_(None), Property.images == '[]')
+    ).filter(Property.source_url.isnot(None))
+
+    if limit > 0:
+        query = query.limit(limit)
+
+    props = query.all()
+    print(f"Found {len(props)} properties without images.")
+
+    updated = 0
+    for i, p in enumerate(props, 1):
+        print(f"[{i}/{len(props)}] #{p.id}: {p.source_url}")
+        soup = fetch_html(p.source_url)
+        if not soup:
+            print("  ⚠ Could not fetch page")
+            time.sleep(1)
+            continue
+
+        parser = ListingParser(soup, p.source_url)
+        images = parser.get_images()
+
+        if images:
+            p.images = images
+            updated += 1
+            print(f"  ✅ Found {len(images)} images")
+        else:
+            print("  ❌ No images found")
+
+        if i % 25 == 0:
+            db.session.commit()
+
+        time.sleep(1)
+
+    db.session.commit()
+    print(f"\nDone. Updated {updated}/{len(props)} properties.")
+

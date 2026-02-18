@@ -21,9 +21,10 @@ def create_app(config_class=Config):
     from app.api import bp as api_bp
     app.register_blueprint(api_bp, url_prefix='/api/v1')
 
-    from app.commands import scrape_command, regeocode_all_command, regeocode_ids_command
+    from app.commands import scrape_command, regeocode_all_command, regeocode_ids_command, backfill_images
     app.cli.add_command(scrape_command)
     app.cli.add_command(regeocode_all_command)
     app.cli.add_command(regeocode_ids_command)
+    app.cli.add_command(backfill_images)
 
     return app
