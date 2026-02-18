@@ -27,3 +27,16 @@ export const fetchProperties = async (filters: PropertyFilters = {}): Promise<Pr
         throw error;
     }
 };
+
+export const fetchAllPropertiesForMap = async (): Promise<{ data: any[], count: number }> => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/properties/map`);
+        if (!response.ok) {
+            throw new Error(`API Error: ${response.statusText}`);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching map properties:', error);
+        throw error;
+    }
+};

@@ -12,8 +12,11 @@ class Property(db.Model):
     currency = db.Column(db.String(10), default="USD")
 
     address = db.Column(db.Text, nullable=True)
+    latitude = db.Column(db.Float, nullable=True)
+    longitude = db.Column(db.Float, nullable=True)
     city = db.Column(db.String(100), nullable=True)
     district = db.Column(db.String(100), nullable=True)
+    geocode_precision = db.Column(db.String(20), nullable=True)
 
     area = db.Column(db.Float, nullable=True)
     rooms = db.Column(db.Integer, nullable=True)
@@ -36,6 +39,8 @@ class Property(db.Model):
             'title': self.title,
             'price': self.price,
             'address': self.address,
+            'lat': self.latitude,
+            'lng': self.longitude,
             'area': self.area,
             'rooms': self.rooms,
             'url': self.source_url,

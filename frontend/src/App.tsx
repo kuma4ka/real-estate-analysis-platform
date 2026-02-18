@@ -10,8 +10,8 @@ function App() {
     const { t, i18n } = useTranslation();
     const [properties, setProperties] = useState<Property[]>([]);
     const [meta, setMeta] = useState<PaginationMeta | null>(null);
-    const [filters, setFilters] = useState<PropertyFilters>({ 
-        page: 1, 
+    const [filters, setFilters] = useState<PropertyFilters>({
+        page: 1,
         per_page: 12,
         sort: 'newest'
     });
@@ -33,7 +33,26 @@ function App() {
         };
 
         loadData();
-    }, [filters]); 
+    }, [filters]);
+
+    const [mapProperties, setMapProperties] = useState<Property[]>([]);
+    const [mapLoaded, setMapLoaded] = useState(false);
+
+    useEffect(() => {
+        if (viewMode === 'map' && !mapLoaded) {
+            const loadMapData = async () => {
+                try {
+                    const { fetchAllPropertiesForMap } = await import('./services/api');
+                    const response = await fetchAllPropertiesForMap();
+                    setMapProperties(response.data);
+                    setMapLoaded(true);
+                } catch (error) {
+                    console.error("Failed to load map properties", error);
+                }
+            };
+            loadMapData();
+        }
+    }, [viewMode, mapLoaded]);
 
     const handleFilterChange = (newFilters: PropertyFilters) => {
         setFilters(prev => ({
@@ -57,7 +76,6 @@ function App() {
 
     return (
         <div className="min-h-screen bg-background text-text-main transition-colors duration-300">
-            {/* Header */}
             <header className="sticky top-0 z-10 bg-surface/80 backdrop-blur-md border-b border-border shadow-sm">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
                     <div className="flex items-center gap-2">
@@ -66,7 +84,7 @@ function App() {
                             {t('app_title')}
                         </h1>
                     </div>
-                    
+
                     <button
                         onClick={toggleLanguage}
                         className="px-3 py-1 rounded-full bg-background border border-border text-sm font-medium hover:border-primary hover:text-primary transition-colors"
@@ -76,27 +94,25 @@ function App() {
                 </div>
             </header>
 
-            {/* Main Content */}
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col h-[calc(100vh-64px)]">
-                
+
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                     <div className="w-full md:w-auto flex-grow">
                          <FilterBar onFilterChange={handleFilterChange} />
                     </div>
-                    
-                    {/* View Toggles */}
+
                     <div className="flex bg-surface rounded-lg border border-border p-1">
                         <button
                             onClick={() => setViewMode('list')}
                             className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${viewMode === 'list' ? 'bg-primary text-white' : 'text-text-muted hover:text-text-main'}`}
                         >
-                            List
+                            {t('view_list')}
                         </button>
                         <button
                             onClick={() => setViewMode('map')}
                             className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${viewMode === 'map' ? 'bg-primary text-white' : 'text-text-muted hover:text-text-main'}`}
                         >
-                            Map
+                            {t('view_map')}
                         </button>
                     </div>
                 </div>
@@ -112,22 +128,22 @@ function App() {
                                 {t('search_results')}
                             </h2>
                             <span className="text-text-muted text-sm bg-surface px-3 py-1 rounded-full border border-border">
-                                {meta?.total_items || 0} items
+                                {t('items_count', { count: meta?.total_items || 0 })}
                             </span>
                         </div>
 
                         {properties.length === 0 ? (
                             <div className="text-center py-20 bg-surface rounded-xl border border-dashed border-border">
                                 <p className="text-xl text-text-muted">{t('no_results')}</p>
-                                <button 
+                                <button
                                     onClick={() => handleFilterChange({})}
                                     className="mt-4 text-primary hover:underline"
                                 >
-                                    {t('reset')} filters
+                                    {t('reset')}
                                 </button>
                             </div>
                         ) : (
-                            <div className="flex-grow relative min-h-[500px]"> 
+                            <div className="flex-grow relative min-h-[500px]">
                                 {viewMode === 'list' ? (
                                     <>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pb-8">
@@ -135,7 +151,7 @@ function App() {
                                                 <PropertyCard key={prop.id} property={prop} />
                                             ))}
                                         </div>
-                                        
+
                                         {meta && meta.total_pages > 1 && (
                                             <div className="py-8 flex justify-center items-center gap-2">
                                                 <button
@@ -160,7 +176,7 @@ function App() {
                                     </>
                                 ) : (
                                     <div className="h-full w-full min-h-[600px] rounded-xl overflow-hidden border border-border">
-                                        <MapComponent properties={properties} />
+                                        <MapComponent properties={mapProperties.length > 0 ? mapProperties : properties} />
                                     </div>
                                 )}
                             </div>

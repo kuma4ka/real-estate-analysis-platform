@@ -6,12 +6,10 @@ const resources = {
     en: {
         translation: {
             "app_title": "Real Estate Analysis",
-            "search": "Search",
             "filters": "Filters",
             "search_results": "Search Results",
             "city": "City",
             "rooms": "Rooms",
-            "price_range": "Price Range",
             "min_price": "Min",
             "max_price": "Max",
             "sort_by": "Sort by",
@@ -22,24 +20,23 @@ const resources = {
             "reset": "Reset",
             "loading": "Loading...",
             "no_results": "No properties found",
-            "price": "Price",
             "area": "Area",
+            "area_unit": "m²",
             "floor": "Floor",
             "more_details": "More Details",
-            "source": "Source",
-            "currency_usd": "$",
-            "currency_uah": "₴",
+            "view_list": "List",
+            "view_map": "Map",
+            "items_count": "{{count}} items",
+            "no_image": "No Image",
         }
     },
     uk: {
         translation: {
             "app_title": "Аналіз Нерухомості",
-            "search": "Пошук",
             "filters": "Фільтри",
             "search_results": "Результати пошуку",
             "city": "Місто",
             "rooms": "Кімнат",
-            "price_range": "Діапазон цін",
             "min_price": "Мін",
             "max_price": "Макс",
             "sort_by": "Сортування",
@@ -50,13 +47,14 @@ const resources = {
             "reset": "Скинути",
             "loading": "Завантаження...",
             "no_results": "Оголошень не знайдено",
-            "price": "Ціна",
             "area": "Площа",
+            "area_unit": "м²",
             "floor": "Поверх",
             "more_details": "Детальніше",
-            "source": "Джерело",
-            "currency_usd": "$",
-            "currency_uah": "₴",
+            "view_list": "Список",
+            "view_map": "Карта",
+            "items_count": "{{count}} оголошень",
+            "no_image": "Без фото",
         }
     }
 };
@@ -66,7 +64,7 @@ i18n
     .use(initReactI18next)
     .init({
         resources,
-        fallbackLng: 'uk', // User seems to be Ukrainian based on request language
+        fallbackLng: 'uk',
         interpolation: {
             escapeValue: false
         }
