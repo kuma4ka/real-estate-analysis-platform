@@ -3,6 +3,21 @@ from sqlalchemy import desc, asc
 from app.models import Property
 from app.api import bp
 from app.api.schemas import properties_schema, property_schema
+from app.services.cities import CITIES
+
+
+def _resolve_city_alias(name):
+    """Resolve a city alias (e.g. 'Kyiv') to the canonical Ukrainian name ('Київ')."""
+    if not name:
+        return name
+    lower = name.strip().lower()
+    for canonical, info in CITIES.items():
+        if canonical.lower() == lower:
+            return canonical
+        for alias in info.get('aliases', []):
+            if alias.lower() == lower:
+                return canonical
+    return name
 
 
 @bp.route('/health', methods=['GET'])
@@ -23,7 +38,8 @@ def get_properties():
     query = Property.query
 
     if city:
-        query = query.filter(Property.city.ilike(f"%{city}%"))
+        resolved = _resolve_city_alias(city)
+        query = query.filter(Property.city.ilike(f"%{resolved}%"))
     if rooms:
         query = query.filter(Property.rooms == rooms)
     if price_min:
