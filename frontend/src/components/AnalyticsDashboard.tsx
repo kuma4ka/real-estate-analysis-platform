@@ -95,7 +95,7 @@ const AnalyticsDashboard: React.FC = () => {
                                 ))}
                             </Pie>
                             <Tooltip
-                                contentStyle={{ background: '#fff', border: '1px solid #e2e5ec', borderRadius: '10px', fontSize: 13 }}
+                                contentStyle={{ background: 'var(--tooltip-bg)', border: '1px solid var(--tooltip-border)', borderRadius: '10px', fontSize: 13 }}
                                 formatter={((value: number, _name: string, props: { payload: { avg_price: number; rooms: number } }) => [
                                     `${value} (avg ${formatPrice(props.payload.avg_price)})`,
                                     `${props.payload.rooms} ${t('rooms')}`
@@ -111,11 +111,11 @@ const AnalyticsDashboard: React.FC = () => {
                     <h3 className="text-sm font-semibold text-text-main mb-4">{t('analytics_by_city')}</h3>
                     <ResponsiveContainer width="100%" height={280}>
                         <BarChart data={stats.by_city} layout="vertical" margin={{ left: 80 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e5ec" />
-                            <XAxis type="number" tick={{ fill: '#6c7293', fontSize: 12 }} />
-                            <YAxis type="category" dataKey="city" tick={{ fill: '#1a1a2e', fontSize: 12 }} width={75} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                            <XAxis type="number" tick={{ fill: 'var(--chart-text)', fontSize: 12 }} />
+                            <YAxis type="category" dataKey="city" tick={{ fill: 'var(--chart-text-bold)', fontSize: 12 }} width={75} />
                             <Tooltip
-                                contentStyle={{ background: '#fff', border: '1px solid #e2e5ec', borderRadius: '10px', fontSize: 13 }}
+                                contentStyle={{ background: 'var(--tooltip-bg)', border: '1px solid var(--tooltip-border)', borderRadius: '10px', fontSize: 13 }}
                                 formatter={((value: number) => [value, t('analytics_count')]) as any}
                             />
                             <Bar dataKey="count" fill="#5bc0c4" radius={[0, 4, 4, 0]} />
@@ -131,11 +131,11 @@ const AnalyticsDashboard: React.FC = () => {
                     <h3 className="text-sm font-semibold text-text-main mb-4">{t('analytics_price_dist')}</h3>
                     <ResponsiveContainer width="100%" height={280}>
                         <BarChart data={stats.price_histogram}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e5ec" />
-                            <XAxis dataKey="range" tick={{ fill: '#6c7293', fontSize: 11 }} />
-                            <YAxis tick={{ fill: '#6c7293', fontSize: 12 }} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                            <XAxis dataKey="range" tick={{ fill: 'var(--chart-text)', fontSize: 11 }} />
+                            <YAxis tick={{ fill: 'var(--chart-text)', fontSize: 12 }} />
                             <Tooltip
-                                contentStyle={{ background: '#fff', border: '1px solid #e2e5ec', borderRadius: '10px', fontSize: 13 }}
+                                contentStyle={{ background: 'var(--tooltip-bg)', border: '1px solid var(--tooltip-border)', borderRadius: '10px', fontSize: 13 }}
                             />
                             <Bar dataKey="count" fill="#b4ebca" radius={[4, 4, 0, 0]} />
                         </BarChart>
@@ -157,12 +157,12 @@ const AnalyticsDashboard: React.FC = () => {
                                     <stop offset="95%" stopColor="#ffb7c3" stopOpacity={0} />
                                 </linearGradient>
                             </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e5ec" />
-                            <XAxis dataKey="date" tick={{ fill: '#6c7293', fontSize: 10 }} />
-                            <YAxis yAxisId="left" tick={{ fill: '#6c7293', fontSize: 12 }} />
-                            <YAxis yAxisId="right" orientation="right" tick={{ fill: '#6c7293', fontSize: 12 }} tickFormatter={formatPrice} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                            <XAxis dataKey="date" tick={{ fill: 'var(--chart-text)', fontSize: 10 }} />
+                            <YAxis yAxisId="left" tick={{ fill: 'var(--chart-text)', fontSize: 12 }} />
+                            <YAxis yAxisId="right" orientation="right" tick={{ fill: 'var(--chart-text)', fontSize: 12 }} tickFormatter={formatPrice} />
                             <Tooltip
-                                contentStyle={{ background: '#fff', border: '1px solid #e2e5ec', borderRadius: '10px', fontSize: 13 }}
+                                contentStyle={{ background: 'var(--tooltip-bg)', border: '1px solid var(--tooltip-border)', borderRadius: '10px', fontSize: 13 }}
                                 formatter={((value: number, name: string) => [
                                     name === 'avg_price' ? formatPrice(value) : value,
                                     name === 'avg_price' ? t('analytics_avg_price') : t('analytics_count')
