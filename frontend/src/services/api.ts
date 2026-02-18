@@ -1,4 +1,4 @@
-import type { PropertiesResponse, PropertyFilters } from '../types/property';
+import type { PropertiesResponse, PropertyFilters, Property } from '../types/property';
 
 const API_BASE_URL = '/api/v1';
 
@@ -28,7 +28,7 @@ export const fetchProperties = async (filters: PropertyFilters = {}): Promise<Pr
     }
 };
 
-export const fetchAllPropertiesForMap = async (): Promise<{ data: { id: number; lat: number; lng: number; title: string; price: number }[], count: number }> => {
+export const fetchAllPropertiesForMap = async (): Promise<{ data: Property[], count: number }> => {
     try {
         const response = await fetch(`${API_BASE_URL}/properties/map`);
         if (!response.ok) {
