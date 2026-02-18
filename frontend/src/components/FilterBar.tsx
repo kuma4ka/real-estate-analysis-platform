@@ -31,7 +31,14 @@ const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange }) => {
         setPriceMin('');
         setPriceMax('');
         setSort('newest');
-        onFilterChange({ page: 1 });
+        onFilterChange({
+            city: '',
+            rooms: undefined as unknown as number,
+            price_min: undefined as unknown as number,
+            price_max: undefined as unknown as number,
+            sort: 'newest',
+            page: 1
+        });
     };
 
     const roomOptions = [1, 2, 3];
