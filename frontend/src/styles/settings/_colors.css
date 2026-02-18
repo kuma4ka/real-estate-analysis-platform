@@ -13,10 +13,44 @@
     --color-warning: #ffe0a3;
     --color-error: #ffb7c3;
 
-    /* UI Colors */
+    /* UI Colors — Light */
     --color-bg-base: #f0f2f5;
     --color-bg-surface: #ffffff;
     --color-text-main: #1a1a2e;
     --color-text-muted: #6c7293;
     --color-border: #e2e5ec;
+
+    /* Chart colors (used in JS via getComputedStyle) */
+    --chart-grid: #e2e5ec;
+    --chart-text: #6c7293;
+    --chart-text-bold: #1a1a2e;
+    --tooltip-bg: #ffffff;
+    --tooltip-border: #e2e5ec;
+}
+
+/* Dark theme — activated by .dark class on <html> */
+.dark {
+    --color-primary: #7dd3d6;
+    --color-primary-hover: #5bc0c4;
+    --color-secondary: #8fcfab;
+    --color-accent: #b8d994;
+    --color-accent-alt: #a5d89a;
+    --color-cta: #ff9aab;
+    --color-cta-hover: #ff7d93;
+
+    --color-success: #8fcfab;
+    --color-warning: #ffd080;
+    --color-error: #ff9aab;
+
+    --color-bg-base: #0f1219;
+    --color-bg-surface: #1a1f2e;
+    --color-text-main: #e8eaef;
+    --color-text-muted: #8b90a8;
+    --color-border: #2a3040;
+
+    --chart-grid: #2a3040;
+    --chart-text: #8b90a8;
+    --chart-text-bold: #e8eaef;
+    --tooltip-bg: #1a1f2e;
+    --tooltip-border: #2a3040;
 }
