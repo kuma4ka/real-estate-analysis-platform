@@ -1,7 +1,9 @@
 import re
 from urllib.parse import urljoin
-from .config import GARBAGE_CLASSES, CITIES_UA
-from .utils import clean_price_text, determine_currency, find_price_by_regex
+from .config import GARBAGE_CLASSES
+from .utils import clean_price_text, find_price_by_regex
+from app.services.cities import normalize_city
+from app.services.address_normalizer import AddressNormalizer
 
 
 class ListingParser:
@@ -42,12 +44,10 @@ class ListingParser:
         rooms = None
         area = None
 
-        # Rooms
         rooms_match = re.search(r'(\d+)\s*[-]?\s*(?:ком|кім)', self.title, re.IGNORECASE)
         if rooms_match:
             rooms = int(rooms_match.group(1))
 
-        # Area
         area_match = re.search(r'Площадь:.*?(\d+(?:[\.,]\d+)?)', self.page_text, re.IGNORECASE)
         if not area_match:
             area_match = re.search(r'(\d+(?:[\.,]\d+)?)\s*м2', self.page_text)
@@ -61,118 +61,151 @@ class ListingParser:
         city = None
         district = None
         address = None
+        region = None
 
-        # 0. Primary Source: <address class="address-sec"> (Most reliable for full address)
         address_sec = self.soup.find('address', class_='address-sec')
         if address_sec:
             h2 = address_sec.find('h2') or address_sec.find('h1') or address_sec.find(class_='detail-page-topic')
             if h2:
-                # City is often in <a> tag
-                city_link = h2.find('a')
-                if city_link:
-                    city_text = city_link.text.strip()
-                    # Validate city against config
-                    norm = CITIES_UA.get(city_text, city_text)
-                    if norm in CITIES_UA.values():
-                        city = norm
-                    else:
-                        city = city_text # Trust the link text even if not in config
-                
-                # Address text is the full text of h2
+                for link in h2.find_all('a'):
+                    link_text = link.text.strip()
+                    if not link_text:
+                        continue
+                    if 'область' in link_text.lower():
+                        if not region:
+                            region = link_text
+                        continue
+                    if 'р-н' in link_text or 'район' in link_text.lower():
+                        if not district:
+                            district = link_text
+                        continue
+                    city = normalize_city(link_text) or link_text
+
                 full_text = h2.get_text(" ", strip=True)
-                # Clean up multiple spaces and formatting
                 address = re.sub(r'\s+', ' ', full_text)
                 address = re.sub(r'\s+,\s*', ', ', address)
 
-        # 1. Breadcrumbs Analysis (Secondary source for City/District if parsing failed to get them)
-        if not city or not district:
-            breadcrumbs = self.soup.find('div', class_='breadcrumbs') or self.soup.find('ul', class_='breadcrumb')
-            if breadcrumbs:
-                crumbs = [a.text.strip() for a in breadcrumbs.find_all('a')]
-                clean_crumbs = [c for c in crumbs if
-                                c not in ['Главная', 'Продажа квартир', 'Продажа недвижимости', 'Meget', 'Недвижимость']]
+                # Fallback: parse plain text when no <a> links found
+                if not city and not region:
+                    text_parts = [p.strip() for p in address.split(',') if p.strip()]
+                    remaining = []
+                    for part in text_parts:
+                        if 'область' in part.lower():
+                            region = part
+                        elif 'р-н' in part.lower() or 'район' in part.lower():
+                            district = part
+                        else:
+                            remaining.append(part)
+                    if remaining:
+                        city = normalize_city(remaining[0]) or remaining[0]
+                        address = ', '.join(remaining)
+                    else:
+                        address = ', '.join(text_parts)
 
-                for i, crumb in enumerate(clean_crumbs):
-                    norm = CITIES_UA.get(crumb, crumb)
-                    if norm in CITIES_UA.values():
-                        if not city: city = norm
-                        # Potential district follows city
-                        if i + 1 < len(clean_crumbs):
-                            d_candidate = clean_crumbs[i + 1]
-                            if "р-н" in d_candidate or "район" in d_candidate.lower():
-                                district = d_candidate
-                        break
-        
-        # Fallback City (Last resort)
+                # Strip region/district from address text
+                addr_parts = [p.strip() for p in address.split(',') if p.strip()]
+                addr_parts = [
+                    p for p in addr_parts
+                    if 'область' not in p.lower() and 'р-н' not in p.lower()
+                ]
+                # Deduplicate consecutive city names
+                if len(addr_parts) >= 2 and normalize_city(addr_parts[0]) and normalize_city(addr_parts[0]) == normalize_city(addr_parts[1]):
+                    addr_parts = addr_parts[1:]
+                address = ', '.join(addr_parts)
+
+        # Breadcrumbs
+        breadcrumbs = self.soup.find('div', class_='breadcrumbs') or self.soup.find('ul', class_='breadcrumb')
+        if breadcrumbs:
+            crumbs = [a.text.strip() for a in breadcrumbs.find_all('a')]
+            skip = {'Главная', 'Продажа квартир', 'Продажа недвижимости', 'Meget', 'Недвижимость'}
+            clean_crumbs = [c for c in crumbs if c not in skip]
+
+            for i, crumb in enumerate(clean_crumbs):
+                if "область" in crumb.lower():
+                    region = crumb
+                    continue
+
+                normalized = normalize_city(crumb)
+                if normalized:
+                    if not city:
+                        city = normalized
+                    if i + 1 < len(clean_crumbs):
+                        d_candidate = clean_crumbs[i + 1]
+                        if "р-н" in d_candidate or "район" in d_candidate.lower():
+                            district = d_candidate
+
+                if "р-н" in crumb or "район" in crumb.lower():
+                    if not district:
+                        district = crumb
+
+        # Fallback: city from title
         if not city:
-            # Check title first
-            for k, v in CITIES_UA.items():
-                if k in self.title:
-                    city = v;
+            for word in self.title.split():
+                normalized = normalize_city(word.strip('.,'))
+                if normalized:
+                    city = normalized
                     break
-            # Only default to Kyiv if we have ABSOLUTELY no clue and it's kiev.ua
-            # But be careful, Meget has subdomain specific cookies or logic, but URL is often mege.kiev.ua for all.
-            # Let's REMOVE the hard default to Kyiv unless title text strongly implies it or we are desperate.
-            # Better to have None than wrong city.
-            if not city and "kiev.ua" in self.url and "Киев" in self.title:
-                 city = "Київ"
 
+        # AI parsing
+        from app.services.ai_address_parser import AIAddressParser
 
-        # 2. Address Logic (Fallback if address-sec method failed)
-        if not address:
-            title_text = self.title
-            
-            # Extended prefixes to strip (including room counts like "1-ком.")
-            prefixes = [
-                r'Продажа.*?квартиры', r'Продам.*?квартиру', r'Объявление №\d+ - ',
-                r'\d+\s*-?\s*ком\.?', r'\d+\s*-?\s*к\.', r'без комиссии'
-            ]
-            
-            cleaned_title = title_text
-            for p in prefixes:
-                cleaned_title = re.sub(p, '', cleaned_title, flags=re.IGNORECASE).strip()
-                
-            # Clean leading/trailing punctuation
-            cleaned_title = cleaned_title.strip(" .,-")
+        breadcrumbs_text = " > ".join([a.text.strip() for a in breadcrumbs.find_all('a')]) if breadcrumbs else ""
 
-            # Validation: Does it look like an address?
-            if len(cleaned_title) > 4 and cleaned_title.lower() != title_text.lower():
-                 # Check if it contains street markers
-                 street_markers = [
-                     'ул.', 'вул.', 'просп.', 'пров.', 'бульв.', 'майдан', 'наб.', 'шосе', 
-                     'узвіз', 'тупик', 'площа', 'квартал', 'алея', 'проспект', 'улица', 'переулок'
-                 ]
-                 if any(m in cleaned_title.lower() for m in street_markers):
-                     address = cleaned_title
-                 else:
-                     if not re.match(r'^\d+[\s-]*ком\.?$', cleaned_title, re.IGNORECASE):
-                         address = cleaned_title
+        ai_result = AIAddressParser.parse(
+            title=self.title,
+            description=self.page_text,
+            breadcrumbs_text=breadcrumbs_text
+        )
 
-            # If title extraction failed, try breadcrumbs composition
-            if not address:
-                 parts = []
-                 if city: parts.append(city)
-                 if district: parts.append(district)
-                 address = ", ".join(parts) if parts else None
+        if ai_result and ai_result.get('city'):
+            city = ai_result.get('city')
+            region = ai_result.get('region') or region
+            district = ai_result.get('district') or district
 
-        # Final Polish: Ensure city is in address for geocoder context
-        # If address was from address-sec, it likely includes city.
-        if city and address and city not in address:
-            address = f"{city}, {address}"
+            parts = []
+            if ai_result.get('street'):
+                parts.append(ai_result['street'])
+            if ai_result.get('number'):
+                parts.append(ai_result['number'])
+
+            address = ", ".join(parts) if parts else city
+
+            if city not in address:
+                address = f"{city}, {address}"
+
+        elif not address:
+            cleaned_title = re.sub(r'(Продажа|Продам).*?(квартиры|квартиру)', '', self.title, flags=re.IGNORECASE)
+            cleaned_title = re.sub(r'Объявление №\d+', '', cleaned_title)
+
+            extracted = AddressNormalizer.extract_from_text(cleaned_title)
+            if not extracted:
+                extracted = AddressNormalizer.extract_from_text(self.page_text)
+            if extracted:
+                address = extracted
+
+        # Ensure city is in address
+        if city and address:
+            has_city = city in address
+            if not has_city:
+                from app.services.cities import CITIES
+                city_info = CITIES.get(city)
+                if city_info:
+                    has_city = any(alias in address for alias in city_info['aliases'])
+            if not has_city:
+                address = f"{city}, {address}"
         elif city and not address:
-            address = city 
+            address = city
 
-        return address, city, district
+        return address, city, district, region
 
     def get_images(self):
         images = []
-        # Main image
         main = self.soup.find('div', class_='image')
         if main and main.find('img'):
             src = main.find('img').get('src')
-            if src: images.append(urljoin(self.url, src))
+            if src:
+                images.append(urljoin(self.url, src))
 
-        # Gallery
         for t in self.soup.find_all('div', class_='small_image'):
             img = t.find('img')
             if img:
@@ -185,7 +218,7 @@ class ListingParser:
     def parse(self):
         price, currency = self.get_price_data()
         rooms, area = self.get_specs()
-        address, city, district = self.get_location()
+        address, city, district, region = self.get_location()
         images = self.get_images()
 
         return {
@@ -197,6 +230,7 @@ class ListingParser:
             "address": address,
             "city": city,
             "district": district,
+            "region": region,
             "area": area,
             "rooms": rooms,
             "images": images

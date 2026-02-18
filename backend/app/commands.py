@@ -6,82 +6,122 @@ from flask.cli import with_appcontext
 from app import db, create_app
 from app.models import Property
 from app.services.meget import scrape_meget_listing, get_listing_urls
+from app.services.cities import get_center, normalize_city, get_region_center
+from app.services.listing_validator import ListingValidator
 
-
-from geopy.geocoders import Nominatim
+from geopy.geocoders import Photon
 from geopy.exc import GeocoderTimedOut, GeocoderServiceError
+from app.services.address_normalizer import AddressNormalizer
+from geopy.distance import geodesic
 
-def get_lat_long(address, attempt=1):
+
+def get_lat_long(address, region=None, attempt=1):
     try:
-        geolocator = Nominatim(user_agent="meget_scraper_v2")
-        
-        # Helper to clean address for geocoding
-        def clean_for_geocoding(addr):
-            # Remove "область", "район", "р-н" which confuse Nominatim sometimes
-            import re
-            cleaned = re.sub(r'\b(область|район|р-н)\b', '', addr, flags=re.IGNORECASE)
-            # Remove "No." "№" etc
-            cleaned = re.sub(r'[№#]', '', cleaned)
-            # Remove multiple spaces/commas
-            cleaned = re.sub(r'\s*,\s*', ', ', cleaned)
-            cleaned = re.sub(r'\s+', ' ', cleaned)
-            return cleaned.strip(", ")
+        geolocator = Photon(user_agent="meget_scraper_v3")
 
-        # Attempt 1: Raw address + Country
-        location = geolocator.geocode(f"{address}, Ukraine", timeout=10)
-        
-        # Verify city match to avoid "Dnipro district in Kyiv" issues
-        if location and "Kyiv" in location.address and "Днепр" in address and "Киев" not in address:
-             print(f"   ⚠️ Suspicious match for {address}: {location.address}. Ignoring.")
-             location = None
+        candidates = AddressNormalizer.normalize(address)
+        if not candidates:
+            candidates = [address]
 
-        # Attempt 2: Cleaned address 
-        if not location:
-            cleaned = clean_for_geocoding(address)
-            if cleaned != address:
-                 # Check if we can extract city for structured query
-                 # This is safer than string concatenation
-                 search_query = f"{cleaned}, Ukraine"
-                 print(f"   ⚠️ Geocoding retry with cleaned: '{search_query}'")
-                 location = geolocator.geocode(search_query, timeout=10)
+        cleaned_addr = AddressNormalizer._basic_clean(address)
+        parts = cleaned_addr.split(',')
+        expected_city = None
+        if parts:
+            possible_city = parts[0].strip()
+            expected_city = normalize_city(possible_city)
 
-        # Attempt 3: Simplified "City, Street"
-        if not location:
-             parts = [p.strip() for p in address.split(',')]
-             if len(parts) > 2:
-                 simplified = f"{parts[0]}, {', '.join(parts[-2:])}"
-                 if simplified != address and simplified != cleaned:
-                     print(f"   ⚠️ Geocoding retry with simplified: '{simplified}'")
-                     location = geolocator.geocode(f"{simplified}, Ukraine", timeout=10)
-                     
-        # Final check for cross-city contamination
-        if location:
-             # If original address said "Dnipro" but result is "Kyiv", reject it unless context implies it.
-             # Simple heuristic: if city name is in valid UA cities, check if result contains it.
-             # existing_prop.city is passed to us? No, we only have address string here. 
-             # But address usually starts with City.
-             pass
+        if expected_city and len(candidates) == 1:
+            canonical = normalize_city(candidates[0])
+            if canonical == expected_city:
+                center = get_center(expected_city)
+                if center:
+                    return center[0], center[1], f"{expected_city}, Україна", "city"
 
-        if location:
-            return location.latitude, location.longitude
-        return None, None
-    except (GeocoderTimedOut, GeocoderServiceError) as e:
-        print(f"⚠️ Geocoding error for {address}: {e}")
-        return None, None
+        if region:
+            region = region.strip()
+
+        for candidate in candidates:
+            try:
+                query_parts = [candidate]
+
+                if expected_city and expected_city not in candidate:
+                    query_parts.append(expected_city)
+                if region and region not in candidate:
+                    query_parts.append(region)
+                if "Україна" not in candidate and "Ukraine" not in candidate:
+                    query_parts.append("Україна")
+
+                query = ", ".join(query_parts)
+                query = ", ".join(p.strip() for p in query.split(",") if p.strip())
+                print(f"    Geocoding: '{query}'")
+
+                location = geolocator.geocode(query, timeout=10)
+
+                if location:
+                    # Region validation
+                    if region:
+                        region_result = get_region_center(region)
+                        if region_result:
+                            _, reg_city = region_result
+                            from app.services.cities import CITIES
+                            city_info = CITIES.get(reg_city, {})
+                            all_names = [reg_city.lower()] + [a.lower() for a in city_info.get('aliases', [])]
+                            loc_addr_lower = location.address.lower()
+                            if not any(name in loc_addr_lower for name in all_names):
+                                print(f"    ⚠️ Region mismatch: {location.address}")
+                                continue
+
+                    # City-level distance check (30km)
+                    if expected_city:
+                        center = get_center(expected_city)
+                        if center:
+                            dist_km = geodesic((location.latitude, location.longitude), center).km
+                            if dist_km > 30:
+                                print(f"    ⚠️ Too far ({dist_km:.0f}km from {expected_city})")
+                                continue
+                    # Oblast-level distance check (100km)
+                    elif region:
+                        region_result = get_region_center(region)
+                        if region_result:
+                            reg_center, reg_city = region_result
+                            dist_km = geodesic((location.latitude, location.longitude), reg_center).km
+                            if dist_km > 100:
+                                print(f"    ⚠️ Too far ({dist_km:.0f}km from {reg_city}, {region})")
+                                continue
+
+                    return location.latitude, location.longitude, location.address, "exact"
+
+            except (GeocoderTimedOut, GeocoderServiceError) as e:
+                print(f"    ⚠️ Photon error: {e}")
+                continue
+
+        # Fallback to oblast center
+        if region:
+            region_result = get_region_center(region)
+            if region_result:
+                reg_center, reg_city = region_result
+                print(f"    📍 Falling back to region center: {reg_city}")
+                return reg_center[0], reg_center[1], f"{reg_city}, Україна", "city"
+
+        return None, None, None, None
     except Exception as e:
-        print(f"⚠️ Unexpected geocoding error: {e}")
-        return None, None
+        print(f"⚠️ Geocoding error: {e}")
+        return None, None, None, None
+
 
 def process_url_in_thread(url, app_config):
     app = create_app(app_config)
 
     with app.app_context():
-        # Small delay to respect scraper and geocoder limits
-        time.sleep(0.5) 
-        
+        time.sleep(0.5)
+
         data = scrape_meget_listing(url)
         if not data:
             return {'status': 'error', 'url': url, 'msg': 'Scrape failed'}
+
+        is_valid, rejection_reason = ListingValidator.validate(data)
+        if not is_valid:
+            return {'status': 'rejected', 'url': url, 'msg': rejection_reason}
 
         try:
             existing_prop = Property.query.filter_by(source_url=url).first()
@@ -100,28 +140,34 @@ def process_url_in_thread(url, app_config):
                     existing_prop.address = data['address']
                     existing_prop.city = data['city']
                     existing_prop.district = data['district']
-                    
-                    # Geocode new address
-                    lat, lng = get_lat_long(data['address'])
+
+                    lat, lng, canonical_addr, precision = get_lat_long(
+                        data['address'], region=data.get('region')
+                    )
                     if lat and lng:
                         existing_prop.latitude = lat
                         existing_prop.longitude = lng
+                        existing_prop.geocode_precision = precision
+                        if canonical_addr:
+                            existing_prop.address = canonical_addr
                         changes.append("geolocation")
-                    
-                    if "address" not in changes: 
+
+                    if "address" not in changes:
                         changes.append("address")
                     needs_update = True
-                
-                # If address didn't change but we don't have coords, try to geocode
+
                 if not existing_prop.latitude and existing_prop.address:
-                    lat, lng = get_lat_long(existing_prop.address)
+                    lat, lng, canonical_addr, precision = get_lat_long(
+                        existing_prop.address, region=data.get('region')
+                    )
                     if lat and lng:
                         existing_prop.latitude = lat
                         existing_prop.longitude = lng
+                        existing_prop.geocode_precision = precision
+                        if canonical_addr:
+                            existing_prop.address = canonical_addr
                         changes.append("geolocation (backfill)")
                         needs_update = True
-                    else:
-                        print(f"Failed to update geocode for {data['address']}")
 
                 if not existing_prop.images and data['images']:
                     existing_prop.images = data['images']
@@ -135,10 +181,11 @@ def process_url_in_thread(url, app_config):
                 else:
                     return {'status': 'skipped', 'url': url}
             else:
-                # Geocode new property
-                lat, lng = None, None
+                lat, lng, canonical_addr, precision = None, None, None, None
                 if data.get('address'):
-                    lat, lng = get_lat_long(data['address'])
+                    lat, lng, canonical_addr, precision = get_lat_long(
+                        data['address'], region=data.get('region')
+                    )
 
                 new_prop = Property(
                     title=data['title'],
@@ -146,11 +193,12 @@ def process_url_in_thread(url, app_config):
                     source_website='meget',
                     price=data.get('price'),
                     currency=data.get('currency'),
-                    address=data.get('address'),
+                    address=canonical_addr if canonical_addr else data.get('address'),
                     city=data.get('city'),
                     district=data.get('district'),
                     latitude=lat,
                     longitude=lng,
+                    geocode_precision=precision,
                     area=data.get('area'),
                     rooms=data.get('rooms'),
                     images=data.get('images'),
@@ -170,52 +218,110 @@ def process_url_in_thread(url, app_config):
 @click.option('--pages', default=1, help='Number of pages to scrape from global catalog')
 @with_appcontext
 def scrape_command(workers, pages):
-    print(f"🚀 Starting GLOBAL scraping with {workers} threads...")
+    print(f"🚀 Starting scraping with {workers} threads, {pages} pages...")
 
     all_target_urls = set()
-
     for page in range(1, pages + 1):
-        print(f"[CRAWLER] Scanning Global Catalog Page {page}...")
+        print(f"[CRAWLER] Page {page}...")
         urls = get_listing_urls(page=page)
         if urls:
             all_target_urls.update(urls)
         time.sleep(1)
 
     url_list = list(all_target_urls)
-    total_urls = len(url_list)
+    total = len(url_list)
 
-    if total_urls == 0:
-        print("[STOP] No listings found.")
+    if total == 0:
+        print("No listings found.")
         return
 
-    print(f"📦 Queue size: {total_urls} listings. Processing parallel...")
+    print(f"📋 {total} listings queued. Processing...")
 
     from config import Config
-    stats = {'new': 0, 'updated': 0, 'skipped': 0, 'errors': 0}
+    stats = {'new': 0, 'updated': 0, 'skipped': 0, 'rejected': 0, 'errors': 0}
 
     with ThreadPoolExecutor(max_workers=workers) as executor:
-        future_to_url = {
+        futures = {
             executor.submit(process_url_in_thread, url, Config): url
             for url in url_list
         }
 
-        for i, future in enumerate(as_completed(future_to_url), 1):
+        for i, future in enumerate(as_completed(futures), 1):
             result = future.result()
-
             status = result['status']
+
             if status == 'new':
                 stats['new'] += 1
                 curr = result.get('currency', 'UAH')
-                print(f"[{i}/{total_urls}] ✅ NEW: {result['title'][:30]}... ({result['price']} {curr})")
+                print(f"[{i}/{total}] ✅ {result['title'][:40]}... ({result['price']} {curr})")
             elif status == 'updated':
                 stats['updated'] += 1
-                print(f"[{i}/{total_urls}] 🔄 UPD: {result['title'][:30]}... ({result['msg']})")
+                print(f"[{i}/{total}] 🔄 {result['title'][:40]}... ({result['msg']})")
             elif status == 'skipped':
                 stats['skipped'] += 1
+            elif status == 'rejected':
+                stats['rejected'] += 1
+                print(f"[{i}/{total}] 🚫 {result['msg']}")
             elif status == 'error':
                 stats['errors'] += 1
-                print(f"[{i}/{total_urls}] ❌ ERR: {result['msg']}")
+                print(f"[{i}/{total}] ❌ {result['msg']}")
 
-    print("-" * 40)
-    print(
-        f"🏁 FINISHED. New: {stats['new']} | Updated: {stats['updated']} | Skipped: {stats['skipped']} | Errors: {stats['errors']}")
+    print(f"\n📊 Done: {stats['new']} new, {stats['updated']} updated, {stats['skipped']} skipped, {stats['rejected']} rejected, {stats['errors']} errors")
+
+
+@click.command(name='regeocode_all')
+@with_appcontext
+def regeocode_all_command():
+    props = Property.query.filter(Property.address.isnot(None)).all()
+    print(f"Re-geocoding {len(props)} properties...")
+
+    count = 0
+    for p in props:
+        lat, lng, canonical, precision = get_lat_long(p.address)
+        if lat and lng:
+            p.latitude = lat
+            p.longitude = lng
+            p.geocode_precision = precision
+            if canonical:
+                p.address = canonical
+            count += 1
+            if count % 10 == 0:
+                db.session.commit()
+                print(f"Updated {count}")
+                time.sleep(1)
+        else:
+            p.latitude = None
+            p.longitude = None
+            p.geocode_precision = None
+
+    db.session.commit()
+    print(f"Done. Updated {count}/{len(props)}.")
+
+
+@click.command(name='regeocode_ids')
+@click.argument('ids_str')
+@with_appcontext
+def regeocode_ids_command(ids_str):
+    ids = [int(i.strip()) for i in ids_str.split(',')]
+    print(f"Re-geocoding {len(ids)} properties: {ids}")
+
+    props = Property.query.filter(Property.id.in_(ids)).all()
+
+    for p in props:
+        print(f"#{p.id}: {p.address}")
+        lat, lng, canonical, precision = get_lat_long(p.address)
+        if lat and lng:
+            print(f"  ✅ {lat}, {lng} ({precision})")
+            p.latitude = lat
+            p.longitude = lng
+            p.geocode_precision = precision
+            if canonical:
+                p.address = canonical
+        else:
+            print("  ❌ Failed")
+            p.latitude = None
+            p.longitude = None
+            p.geocode_precision = None
+
+    db.session.commit()
+    print("Done.")
