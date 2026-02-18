@@ -12,17 +12,14 @@ def health_check():
 
 @bp.route('/properties', methods=['GET'])
 def get_properties():
-    # 1. Query Params
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 20, type=int)
-
     city = request.args.get('city')
     rooms = request.args.get('rooms', type=int)
     price_min = request.args.get('price_min', type=float)
     price_max = request.args.get('price_max', type=float)
     sort_by = request.args.get('sort', 'newest')
 
-    # 2. Query Builder
     query = Property.query
 
     if city:
@@ -41,12 +38,10 @@ def get_properties():
     else:
         query = query.order_by(desc(Property.created_at))
 
-    # 3. Pagination
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
-    results = pagination.items
 
     return jsonify({
-        'data': properties_schema.dump(results),
+        'data': properties_schema.dump(pagination.items),
         'meta': {
             'page': page,
             'per_page': per_page,
@@ -64,14 +59,28 @@ def get_property(id):
 
 @bp.route('/properties/map', methods=['GET'])
 def get_map_properties():
-    # Fetch all properties with coordinates
-    # Return lightweight objects to avoid heavy payload
-    query = Property.query.filter(Property.latitude.isnot(None), Property.longitude.isnot(None))
-    
-    # Optional filtering can be applied here too if needed, but for now let's return all valid geocoded props
+    """Lightweight endpoint for map markers. Supports same filters as /properties."""
+    query = Property.query.filter(
+        Property.latitude.isnot(None),
+        Property.longitude.isnot(None)
+    )
+
+    city = request.args.get('city')
+    rooms = request.args.get('rooms', type=int)
+    price_min = request.args.get('price_min', type=float)
+    price_max = request.args.get('price_max', type=float)
+
+    if city:
+        query = query.filter(Property.city.ilike(f"%{city}%"))
+    if rooms:
+        query = query.filter(Property.rooms == rooms)
+    if price_min:
+        query = query.filter(Property.price >= price_min)
+    if price_max:
+        query = query.filter(Property.price <= price_max)
+
     properties = query.all()
-    
-    # Custom lightweight serialization but matching Property interface keys
+
     data = [{
         'id': p.id,
         'title': p.title,
@@ -82,13 +91,14 @@ def get_map_properties():
         'lng': p.longitude,
         'city': p.city,
         'district': p.district,
+        'geocode_precision': p.geocode_precision,
         'area': p.area,
         'rooms': p.rooms,
         'floor': p.floor,
-        'description': None, # Keep payload light
-        'images': p.images[:1] if p.images else [], # Send 1 image for potential popup
+        'description': None,
+        'images': p.images[:1] if p.images else [],
         'source_url': p.source_url,
         'created_at': p.created_at.isoformat() if p.created_at else None
     } for p in properties]
-    
+
     return jsonify({'data': data, 'count': len(data)})
