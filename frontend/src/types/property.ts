@@ -8,6 +8,7 @@ export interface Property {
     lng: number | null;
     city: string | null;
     district: string | null;
+    geocode_precision: string | null;
     area: number | null;
     rooms: number | null;
     floor: number | null;
