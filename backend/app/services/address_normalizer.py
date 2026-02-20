@@ -126,14 +126,33 @@ class AddressNormalizer:
     @classmethod
     def _translate_full_string(cls, text: str) -> str:
         translations = cls._get_translations()
-        for k, v in translations.items():
-            pattern = re.compile(r'\b' + re.escape(k), re.IGNORECASE)
-            text = pattern.sub(v, text)
+        
+        # Sort keys by length descending to replace "улица Ленина" before "улица"
+        sorted_keys = sorted(translations.keys(), key=len, reverse=True)
+        
+        for k in sorted_keys:
+            v = translations[k]
+            # Use lookbehind/lookahead for word characters instead of \b to handle trailing dots like "ул."
+            pattern = re.compile(r'(?<![а-яА-Яa-zA-ZїієґЇІЄҐ])' + re.escape(k) + r'(?![а-яА-Яa-zA-ZїієґЇІЄҐ])', re.IGNORECASE)
+            
+            if pattern.search(text):
+                # If we are replacing a name that includes a marker (validation from dict values)
+                if any(marker in v.lower() for marker in ['вулиця', 'проспект', 'провулок', 'площа', 'майдан', 'бульвар']):
+                     # Check if there is a preceding marker in text that will be redundant
+                     preceding_marker_pattern = re.compile(r'(?<![а-яА-Яa-zA-ZїієґЇІЄҐ])(улица|ул\.?|проспект|просп\.?|переулок|пер\.?|площадь|пл\.?|бульвар|б-р|шоссе|спуск|тупик)\s+' + re.escape(k) + r'(?![а-яА-Яa-zA-ZїієґЇІЄҐ])', re.IGNORECASE)
+                     
+                     if preceding_marker_pattern.search(text):
+                         # Replace "marker k" with "v" directly
+                         text = preceding_marker_pattern.sub(v, text)
+                         continue
+
+                text = pattern.sub(v, text)
+                
         return text
 
     @classmethod
     def _basic_clean(cls, text: str) -> str:
-        text = re.sub(r'\b[\w-]+\s+(область|район|р-н)\b\.?', '', text, flags=re.IGNORECASE)
+        text = re.sub(r'\s+(область|район|р-н)\b\.?', '', text, flags=re.IGNORECASE)
         text = re.sub(r'\b(м-н|ж/м|массив|микрорайон)\b\.?', '', text, flags=re.IGNORECASE)
         text = re.sub(r'[№#]', '', text)
         return text.strip().strip(', ')
@@ -141,15 +160,7 @@ class AddressNormalizer:
     @classmethod
     def _process_street_part(cls, text: str) -> str:
         """Translates and normalizes a street name part."""
-        translations = cls._get_translations()
-        words = text.split()
-        new_words = []
-        for w in words:
-            term = w.lower().strip('.,')
-            trans = next((v for k, v in translations.items() if k.lower() == term), None)
-            new_words.append(trans if trans else w)
-
-        text = " ".join(new_words)
+        text = cls._translate_full_string(text)
 
         # Fix inverted initials: "Шевченко Т." → "Т. Шевченко"
         match = re.search(r'([А-Яа-яїієґA-Za-z]+)\s+([А-Яа-яїієґA-Za-z]\.([А-Яа-яїієґA-Za-z]\.)?)', text)
