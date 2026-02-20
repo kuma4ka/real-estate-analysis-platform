@@ -5,7 +5,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask.cli import with_appcontext
 from app import db, create_app
 from app.models import Property
-from app.services.meget import scrape_meget_listing, get_listing_urls
+from app.services.meget import scrape_meget_listing, get_listing_urls as meget_get_listing_urls
+from app.services.bon_ua import scrape_bon_ua_listing, get_listing_urls as bon_ua_get_listing_urls
 from app.services.cities import get_center, normalize_city, get_region_center
 from app.services.listing_validator import ListingValidator
 
@@ -109,13 +110,13 @@ def get_lat_long(address, region=None, attempt=1):
         return None, None, None, None
 
 
-def process_url_in_thread(url, app_config):
+def process_url_in_thread(url, app_config, scrape_func):
     app = create_app(app_config)
 
     with app.app_context():
         time.sleep(0.5)
 
-        data = scrape_meget_listing(url)
+        data = scrape_func(url)
         if not data:
             return {'status': 'error', 'url': url, 'msg': 'Scrape failed'}
 
@@ -217,18 +218,39 @@ def process_url_in_thread(url, app_config):
 @click.option('--workers', default=5, help='Number of parallel threads')
 @click.option('--pages', default=1, help='Number of pages to scrape from global catalog')
 @with_appcontext
-def scrape_command(workers, pages):
-    print(f"🚀 Starting scraping with {workers} threads, {pages} pages...")
+def scrape_meget_command(workers, pages):
+    print(f"🚀 Starting Meget scraping with {workers} threads, {pages} pages...")
 
     all_target_urls = set()
     for page in range(1, pages + 1):
         print(f"[CRAWLER] Page {page}...")
-        urls = get_listing_urls(page=page)
+        urls = meget_get_listing_urls(page=page)
         if urls:
             all_target_urls.update(urls)
         time.sleep(1)
 
     url_list = list(all_target_urls)
+    _execute_scraping(url_list, workers, scrape_meget_listing)
+
+@click.command(name='scrape_bon_ua')
+@click.option('--workers', default=5, help='Number of parallel threads')
+@click.option('--pages', default=1, help='Number of pages to scrape from global catalog')
+@with_appcontext
+def scrape_bon_ua_command(workers, pages):
+    print(f"🚀 Starting Bon.ua scraping with {workers} threads, {pages} pages...")
+
+    all_target_urls = set()
+    for page in range(1, pages + 1):
+        print(f"[CRAWLER] Page {page}...")
+        urls = bon_ua_get_listing_urls(page=page)
+        if urls:
+            all_target_urls.update(urls)
+        time.sleep(1)
+
+    url_list = list(all_target_urls)
+    _execute_scraping(url_list, workers, scrape_bon_ua_listing)
+
+def _execute_scraping(url_list, workers, scrape_func):
     total = len(url_list)
 
     if total == 0:
@@ -242,7 +264,7 @@ def scrape_command(workers, pages):
 
     with ThreadPoolExecutor(max_workers=workers) as executor:
         futures = {
-            executor.submit(process_url_in_thread, url, Config): url
+            executor.submit(process_url_in_thread, url, Config, scrape_func): url
             for url in url_list
         }
 
