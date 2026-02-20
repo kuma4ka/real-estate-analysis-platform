@@ -1,5 +1,4 @@
 
-import pytest
 from app.services.address_normalizer import AddressNormalizer
 
 class TestAddressNormalizer:

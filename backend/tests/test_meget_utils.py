@@ -1,4 +1,3 @@
-import pytest
 from app.services.meget.utils import clean_price_text, extract_number, find_price_by_regex
 
 def test_clean_price_text():
