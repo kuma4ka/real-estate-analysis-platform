@@ -7,6 +7,7 @@ from app import db, create_app
 from app.models import Property
 from app.services.meget import scrape_meget_listing, get_listing_urls as meget_get_listing_urls
 from app.services.bon_ua import scrape_bon_ua_listing, get_listing_urls as bon_ua_get_listing_urls
+from app.services.rieltor_ua import scrape_rieltor_ua_listing, get_listing_urls as rieltor_ua_get_listing_urls
 from app.services.cities import get_center, normalize_city, get_region_center
 from app.services.listing_validator import ListingValidator
 
@@ -249,6 +250,24 @@ def scrape_bon_ua_command(workers, pages):
 
     url_list = list(all_target_urls)
     _execute_scraping(url_list, workers, scrape_bon_ua_listing)
+
+@click.command(name='scrape_rieltor_ua')
+@click.option('--workers', default=5, help='Number of parallel threads')
+@click.option('--pages', default=1, help='Number of pages to scrape from global catalog')
+@with_appcontext
+def scrape_rieltor_ua_command(workers, pages):
+    print(f"🚀 Starting Rieltor.ua scraping with {workers} threads, {pages} pages...")
+
+    all_target_urls = set()
+    for page in range(1, pages + 1):
+        print(f"[CRAWLER] Page {page}...")
+        urls = rieltor_ua_get_listing_urls(page=page)
+        if urls:
+            all_target_urls.update(urls)
+        time.sleep(1)
+
+    url_list = list(all_target_urls)
+    _execute_scraping(url_list, workers, scrape_rieltor_ua_listing)
 
 def _execute_scraping(url_list, workers, scrape_func):
     total = len(url_list)

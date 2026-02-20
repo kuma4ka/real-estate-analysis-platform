@@ -2,4 +2,6 @@
 0 */6 * * * root cd /app && /usr/local/bin/python -m flask scrape_meget --pages 10 >> /var/log/cron.log 2>&1
 # Run scrape_bon_ua every 6 hours (offset by 1 hour)
 0 1-23/6 * * * root cd /app && /usr/local/bin/python -m flask scrape_bon_ua --pages 10 >> /var/log/cron.log 2>&1
+# Run scrape_rieltor_ua every 6 hours (offset by 2 hours)
+0 2-23/6 * * * root cd /app && /usr/local/bin/python -m flask scrape_rieltor_ua --pages 10 >> /var/log/cron.log 2>&1
 # An empty line is required at the end of this file for a valid cron file.
