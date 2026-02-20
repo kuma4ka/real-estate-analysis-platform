@@ -122,8 +122,6 @@ def process_url_in_thread(url, app_config, scrape_func):
             return {'status': 'error', 'url': url, 'msg': 'Scrape failed'}
 
         is_valid, rejection_reason = ListingValidator.validate(data)
-        if not is_valid:
-            return {'status': 'rejected', 'url': url, 'msg': rejection_reason}
 
         try:
             existing_prop = Property.query.filter_by(source_url=url).first()
@@ -132,17 +130,29 @@ def process_url_in_thread(url, app_config, scrape_func):
                 needs_update = False
                 changes = []
 
-                if existing_prop.price != data['price']:
+                if existing_prop.price != data['price'] or existing_prop.currency != data['currency']:
                     existing_prop.price = data['price']
                     existing_prop.currency = data['currency']
                     changes.append("price")
                     needs_update = True
 
-                if data['address'] and existing_prop.address != data['address']:
-                    existing_prop.address = data['address']
-                    existing_prop.city = data['city']
-                    existing_prop.district = data['district']
+                if existing_prop.source_website != data.get('source_website'):
+                    existing_prop.source_website = data.get('source_website')
+                    changes.append("source")
+                    needs_update = True
 
+                if data.get('address') and existing_prop.address != data['address']:
+                    print(f"DEBUG: Updating address from '{existing_prop.address}' to '{data['address']}'")
+                    existing_prop.address = data['address']
+                    existing_prop.city = data.get('city')
+                    existing_prop.district = data.get('district')
+                    changes.append("address")
+                    needs_update = True
+                else:
+                    print(f"DEBUG: Skipping UPDATE string check. DB address: {existing_prop.address} | New: {data.get('address')}")
+                    
+                # Force a new geocode attempt for the new address
+                if "address" in changes:
                     lat, lng, canonical_addr, precision = get_lat_long(
                         data['address'], region=data.get('region')
                     )
@@ -153,12 +163,13 @@ def process_url_in_thread(url, app_config, scrape_func):
                         if canonical_addr:
                             existing_prop.address = canonical_addr
                         changes.append("geolocation")
-
-                    if "address" not in changes:
-                        changes.append("address")
-                    needs_update = True
-
-                if not existing_prop.latitude and existing_prop.address:
+                    else:
+                        existing_prop.latitude = None
+                        existing_prop.longitude = None
+                        existing_prop.geocode_precision = None
+                
+                # Only attempt backfill if the address string wasn't just changed, and we lack coords
+                elif not existing_prop.latitude and existing_prop.address:
                     lat, lng, canonical_addr, precision = get_lat_long(
                         existing_prop.address, region=data.get('region')
                     )
@@ -177,12 +188,24 @@ def process_url_in_thread(url, app_config, scrape_func):
                     needs_update = True
 
                 if needs_update:
+                    if not is_valid:
+                        changes.append(f"flagged: {rejection_reason}")
+                    
+                    print(f"DEBUG: Committing to DB. needs_update={needs_update}, is_valid={is_valid}, changes={changes}, new address={existing_prop.address}")
                     existing_prop.updated_at = datetime.utcnow()
                     db.session.commit()
+                    
+                    if not is_valid:
+                        return {'status': 'rejected', 'url': url, 'msg': f"Updated but flagged: {rejection_reason}"}
                     return {'status': 'updated', 'title': data['title'], 'msg': ', '.join(changes)}
                 else:
+                    if not is_valid:
+                        return {'status': 'rejected', 'url': url, 'msg': rejection_reason}
                     return {'status': 'skipped', 'url': url}
             else:
+                if not is_valid:
+                    return {'status': 'rejected', 'url': url, 'msg': rejection_reason}
+
                 lat, lng, canonical_addr, precision = None, None, None, None
                 if data.get('address'):
                     lat, lng, canonical_addr, precision = get_lat_long(
@@ -192,7 +215,7 @@ def process_url_in_thread(url, app_config, scrape_func):
                 new_prop = Property(
                     title=data['title'],
                     source_url=data['source_url'],
-                    source_website='meget',
+                    source_website=data['source_website'],
                     price=data.get('price'),
                     currency=data.get('currency'),
                     address=canonical_addr if canonical_addr else data.get('address'),

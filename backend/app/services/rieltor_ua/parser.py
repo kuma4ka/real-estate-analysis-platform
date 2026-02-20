@@ -104,7 +104,7 @@ class RieltorParser:
         district = None
         region = None
         
-        breadcrumbs = self.soup.select('.breadcrumbs li a, .breadcrumb li a')
+        breadcrumbs = self.soup.select('.breadcrumbs li a, .breadcrumb li a, div[class*="bread"] a, ul[class*="bread"] li a, a.address-link')
         crumbs_text = [a.get_text(strip=True) for a in breadcrumbs]
         
         for crumb in crumbs_text:
