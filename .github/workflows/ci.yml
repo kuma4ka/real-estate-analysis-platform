@@ -32,10 +32,28 @@ jobs:
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-    - name: Debug Content & Run Tests
+    - name: Run Backend Tests
       run: |
-        echo "=== CONTENT OF tests/test_api.py ==="
-        cat tests/test_api.py
-        echo "===================================="
         export PYTHONPATH=$PYTHONPATH:.
-        python -m pytest tests/test_api.py -v -s
+        python -m pytest tests/ -v -s
+
+  frontend-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js 20
+      uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run Frontend Tests
+      run: npm run test:run
