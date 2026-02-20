@@ -146,7 +146,10 @@ class BonUaParser:
         
         for crumb in crumbs_text:
             if "область" in crumb.lower():
-                region = crumb
+                if "-" in crumb:
+                    region = crumb.split("-")[-1].strip()
+                else:
+                    region = crumb.strip()
                 continue
                 
             if "р-н" in crumb.lower() or "район" in crumb.lower():
