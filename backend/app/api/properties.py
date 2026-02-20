@@ -35,7 +35,7 @@ def get_properties():
     price_max = request.args.get('price_max', type=float)
     sort_by = request.args.get('sort', 'newest')
 
-    query = Property.query
+    query = Property.query.filter(Property.is_active)
 
     if city:
         resolved = _resolve_city_alias(city)
@@ -78,7 +78,8 @@ def get_map_properties():
     """Lightweight endpoint for map markers. Supports same filters as /properties."""
     query = Property.query.filter(
         Property.latitude.isnot(None),
-        Property.longitude.isnot(None)
+        Property.longitude.isnot(None),
+        Property.is_active
     )
 
     city = request.args.get('city')

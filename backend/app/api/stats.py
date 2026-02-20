@@ -6,9 +6,10 @@ from app.api import bp
 
 @bp.route('/stats', methods=['GET'])
 def get_stats():
-    total = Property.query.count()
+    base_query = Property.query.filter(Property.is_active)
+    total = base_query.count()
 
-    avg_price_raw = Property.query.with_entities(
+    avg_price_raw = base_query.with_entities(
         func.avg(
             case(
                 (Property.currency == 'UAH', Property.price / 41.0),

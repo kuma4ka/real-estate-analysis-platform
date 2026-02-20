@@ -26,6 +26,7 @@ class Property(db.Model):
     source_website = db.Column(db.String(50))
     description = db.Column(db.Text, nullable=True)
     images = db.Column(db.JSON, nullable=True)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -44,5 +45,6 @@ class Property(db.Model):
             'area': self.area,
             'rooms': self.rooms,
             'url': self.source_url,
-            'created_at': self.created_at.isoformat()
+            'created_at': self.created_at.isoformat(),
+            'is_active': self.is_active
         }

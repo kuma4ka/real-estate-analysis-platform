@@ -16,13 +16,14 @@ def create_app(config_class=Config):
     migrate.init_app(app, db)
     ma.init_app(app)
 
-    from app import models
+
 
     from app.api import bp as api_bp
     app.register_blueprint(api_bp, url_prefix='/api/v1')
 
-    from app.commands import scrape_command, regeocode_all_command, regeocode_ids_command, backfill_images
-    app.cli.add_command(scrape_command)
+    from app.commands import scrape_meget_command, scrape_bon_ua_command, regeocode_all_command, regeocode_ids_command, backfill_images
+    app.cli.add_command(scrape_meget_command)
+    app.cli.add_command(scrape_bon_ua_command)
     app.cli.add_command(regeocode_all_command)
     app.cli.add_command(regeocode_ids_command)
     app.cli.add_command(backfill_images)
