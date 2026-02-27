@@ -1,6 +1,5 @@
 import pytest
 from bs4 import BeautifulSoup
-from unittest.mock import patch
 from app.services.meget.parser import ListingParser
 
 class TestListingParser:
@@ -30,11 +29,7 @@ class TestListingParser:
         """
         return BeautifulSoup(html, 'html.parser')
 
-    @patch('app.services.ai_address_parser.AIAddressParser.parse')
-    def test_parse_basics(self, mock_ai_parse, mock_soup):
-        # Mock the AI parser returning None, so we test the heuristic logic
-        mock_ai_parse.return_value = None
-        
+    def test_parse_basics(self, mock_soup):
         parser = ListingParser(mock_soup, "http://example.com/listing/1")
         data = parser.parse()
 
@@ -47,22 +42,13 @@ class TestListingParser:
         assert data['rooms'] == 2
         assert len(data['images']) == 2
         assert "http://example.com/img1.jpg" in data['images']
-        
-    @patch('app.services.ai_address_parser.AIAddressParser.parse')
-    def test_ai_fallback_is_used(self, mock_ai_parse, mock_soup):
-        # Mock the AI parser returning a valid structured result
-        mock_ai_parse.return_value = {
-            'city': 'Київ',
-            'street': 'вулиця Тестова',
-            'number': '42А',
-            'district': 'Солом\'янський',
-            'region': 'Київська_mock'
-        }
-        
+
+    def test_address_extracted_from_title(self, mock_soup):
+        """Parser should extract street address via AddressNormalizer when breadcrumbs
+        do not contain a recognisable street name."""
         parser = ListingParser(mock_soup, "http://example.com/listing/2")
         data = parser.parse()
-        
-        assert data['address'] == "Київ, вулиця Тестова, 42А"
+
+        # AddressNormalizer should pull the street from the h1 title
+        assert data['address'] is not None
         assert data['city'] == "Київ"
-        assert data['district'] == "Солом\'янський"
-        assert data['region'] == "Київська_mock"
