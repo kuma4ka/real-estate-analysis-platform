@@ -27,7 +27,8 @@ def create_app(config_class=Config):
         regeocode_all_command, 
         regeocode_ids_command, 
         backfill_images,
-        convert_currencies_command
+        convert_currencies_command,
+        rescrape_duplicates_command
     )
     app.cli.add_command(scrape_meget_command)
     app.cli.add_command(scrape_bon_ua_command)
@@ -35,5 +36,6 @@ def create_app(config_class=Config):
     app.cli.add_command(regeocode_ids_command)
     app.cli.add_command(backfill_images)
     app.cli.add_command(convert_currencies_command)
+    app.cli.add_command(rescrape_duplicates_command)
 
     return app

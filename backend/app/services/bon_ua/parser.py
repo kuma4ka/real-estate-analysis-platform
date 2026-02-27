@@ -4,7 +4,6 @@ from bs4 import BeautifulSoup
 from .network import fetch_html
 from .config import BASE_URL, LISTINGS_URL
 
-from app.services.meget.utils import find_price_by_regex
 from app.services.cities import normalize_city
 from app.services.address_normalizer import AddressNormalizer
 
@@ -58,32 +57,65 @@ class BonUaParser:
         price = 0.0
         currency = "UAH"
 
-        # Try to find a prominent price block first
-        price_wrap = self.soup.select_one('.price-wrap, .m-price-wrap, .price')
-        if price_wrap:
-            text = price_wrap.get_text(" ", strip=True)
-            m = re.search(r'(\d+(?:\s+\d+)*)\s*(грн|uah|\$|€|usd|eur)', text, re.IGNORECASE)
-            if m:
-                amount_str = m.group(1).replace(' ', '')
-                curr_str = m.group(2).lower()
-                price = float(amount_str)
-                if '$' in curr_str or 'usd' in curr_str:
-                    currency = "USD"
-                elif '€' in curr_str or 'eur' in curr_str:
-                    currency = "EUR"
-                return price, currency
+        # Try the most specific bon.ua price selectors first
+        # NOTE: Do NOT use generic '.price' — it matches sidebar/recommended listings too!
+        PRICE_SELECTORS = [
+            '.m-price-wrap',   # main listing price container on most modern bon.ua pages
+            '.price-wrap',     # older variant
+            '[class*="price-value"]',
+            '[class*="offer-price"]',
+        ]
+        for selector in PRICE_SELECTORS:
+            el = self.soup.select_one(selector)
+            if el:
+                text = el.get_text(" ", strip=True)
+                m = re.search(r'([\d][\d\s]*)\s*(грн|uah|\$|€|usd|eur)', text, re.IGNORECASE)
+                if m:
+                    amount_str = m.group(1).replace(' ', '')
+                    curr_str = m.group(2).lower()
+                    candidate = float(amount_str)
+                    if candidate > 0:
+                        price = candidate
+                        if '$' in curr_str or 'usd' in curr_str:
+                            currency = "USD"
+                        elif '€' in curr_str or 'eur' in curr_str:
+                            currency = "EUR"
+                        return price, currency
 
-        # Fallback to general text regex for UAH
-        if price == 0.0:
-            price = find_price_by_regex(self.page_text, r'(\d[\d\s]*)\s*грн')
-            if price > 0:
-                return price, "UAH"
+        # JSON-LD structured data fallback (reliable)
+        import json
+        for script in self.soup.find_all('script', type='application/ld+json'):
+            try:
+                data = json.loads(script.string or '')
+                offers = data.get('offers', {})
+                if isinstance(offers, list):
+                    offers = offers[0] if offers else {}
+                if offers and 'price' in offers:
+                    price = float(str(offers['price']).replace(' ', ''))
+                    curr = offers.get('priceCurrency', 'UAH').upper()
+                    currency = curr if curr in ('USD', 'EUR', 'UAH') else 'UAH'
+                    if price > 0:
+                        return price, currency
+            except Exception:
+                pass
 
-        # Fallback for USD
-        if price == 0.0:
-            price = find_price_by_regex(self.page_text, r'(\d[\d\s]*)\s*\$')
-            if price > 0:
-                return price, "USD"
+        # Last resort: look in og:description or title meta
+        # (avoid scraping the whole page_text which catches sidebar prices)
+        for meta_prop in ['og:description', 'og:title']:
+            el = self.soup.find('meta', property=meta_prop)
+            if el:
+                text = el.get('content', '')
+                m = re.search(r'([\d][\d\s]{3,})\s*(грн|uah|\$|€|usd|eur)', text, re.IGNORECASE)
+                if m:
+                    candidate = float(m.group(1).replace(' ', ''))
+                    if candidate > 0:
+                        price = candidate
+                        curr_str = m.group(2).lower()
+                        if '$' in curr_str or 'usd' in curr_str:
+                            currency = "USD"
+                        elif '€' in curr_str or 'eur' in curr_str:
+                            currency = "EUR"
+                        return price, currency
 
         return price, currency
 

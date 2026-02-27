@@ -458,3 +458,31 @@ def convert_currencies_command():
             
     db.session.commit()
     print(f"\nDone. Converted {updated} properties to USD.")
+
+
+@click.command('rescrape-duplicates')
+@click.option('--min-count', default=20, help='Min duplicate count to flag a price as suspicious')
+@click.option('--workers', default=5, help='Number of parallel scrape threads')
+@with_appcontext
+def rescrape_duplicates_command(min_count, workers):
+    """Re-scrapes bon_ua listings with suspiciously duplicated prices."""
+    from sqlalchemy import func as sqlfunc
+
+    # Find prices that appear too often (suspiciously)
+    duplicate_prices = db.session.query(Property.price).filter(
+        Property.source_website == 'bon_ua',
+        Property.source_url.isnot(None),
+    ).group_by(Property.price).having(sqlfunc.count(Property.id) >= min_count).all()
+
+    bad_prices = {r[0] for r in duplicate_prices}
+    print(f"Found {len(bad_prices)} suspicious price value(s): {[round(p, 0) for p in bad_prices]}")
+
+    urls = [
+        p.source_url for p in Property.query.filter(
+            Property.source_website == 'bon_ua',
+            Property.price.in_(list(bad_prices)),
+        ).all()
+    ]
+    print(f"Queued {len(urls)} listings for re-scraping...")
+
+    _execute_scraping(urls, workers, scrape_bon_ua_listing)
