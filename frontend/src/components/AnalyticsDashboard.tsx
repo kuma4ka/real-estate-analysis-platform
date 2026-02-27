@@ -201,10 +201,13 @@ const AnalyticsDashboard: React.FC = () => {
                                 contentStyle={{ background: 'var(--tooltip-bg)', border: '1px solid var(--tooltip-border)', borderRadius: '10px', fontSize: 13 }}
                                 itemStyle={{ color: 'var(--chart-text-bold)' }}
                                 labelStyle={{ color: 'var(--chart-text-bold)' }}
-                                formatter={((value: number, name: string) => [
-                                    name === 'avg_price' ? formatPrice(value) : value,
-                                    name === 'avg_price' ? t('analytics_avg_price') : t('analytics_count')
-                                ]) as any}
+                                formatter={((value: number, _name: string, props: { dataKey: string }) => {
+                                    const isPrice = props.dataKey === 'avg_price';
+                                    return [
+                                        isPrice ? formatPrice(value) : value,
+                                        isPrice ? t('analytics_avg_price') : t('analytics_count'),
+                                    ];
+                                }) as any}
                             />
                             <Legend />
                             <Area yAxisId="left" type="monotone" dataKey="count" stroke="#5bc0c4" fill="url(#colorCount)" name={t('analytics_count')} />
