@@ -118,7 +118,17 @@ def process_url_in_thread(url, app_config, scrape_func):
 
         data = scrape_func(url)
         if not data:
+            # Listing expired (returned None): mark it inactive if it exists in DB
+            try:
+                expired = Property.query.filter_by(source_url=url).first()
+                if expired and expired.is_active:
+                    expired.is_active = False
+                    db.session.commit()
+                    return {'status': 'error', 'url': url, 'msg': 'Listing expired - marked inactive'}
+            except Exception:
+                pass
             return {'status': 'error', 'url': url, 'msg': 'Scrape failed'}
+
 
         # Normalize currency to USD using live NBU rates
         from app.services.currency import convert_to_usd

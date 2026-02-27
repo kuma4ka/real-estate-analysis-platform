@@ -46,27 +46,53 @@ class BonUaParser:
     def __init__(self, html, url):
         self.soup = BeautifulSoup(html, 'html.parser')
         self.url = url
-        self.page_text = self.soup.get_text(" ", strip=True)
+
+        # CRITICAL: bon.ua listing pages show a FEED of msg-inner cards:
+        #   [0] = promoted/featured listing (WRONG price!)
+        #   [N] = current listing (correct)
+        #   [M+] = related/similar listings
+        # We MUST scope parsing to the card that links to THIS URL.
+        self.main_section = self._find_main_section()
+
+        self.page_text = (
+            self.main_section.get_text(" ", strip=True)
+            if self.main_section else self.soup.get_text(" ", strip=True)
+        )
         self.title = self._get_title()
 
+    def _find_main_section(self):
+        """Find the msg-inner block that corresponds to THIS listing, not promoted/related ones."""
+        slug = self.url.rstrip('/').split('/')[-1]
+        for msg in self.soup.select('div.msg-inner'):
+            if msg.find('a', href=lambda h: h and slug in (h or '')):
+                return msg
+        # Fallback: use the whole soup (may still have wrong price, but better than nothing)
+        return None
+
     def _get_title(self):
-        title_tag = self.soup.find('h1')
-        return title_tag.text.strip() if title_tag else "No Title"
+        # Prefer h1 from the main section, fallback to page-level h1
+        if self.main_section:
+            tag = self.main_section.find('h1') or self.main_section.find(class_='w-title')
+            if tag:
+                return tag.get_text(strip=True)
+        tag = self.soup.find('h1')
+        return tag.text.strip() if tag else "No Title"
 
     def get_price_data(self):
         price = 0.0
         currency = "UAH"
 
-        # Try the most specific bon.ua price selectors first
-        # NOTE: Do NOT use generic '.price' — it matches sidebar/recommended listings too!
+        # Search ONLY in the correct msg-inner (current listing), not the whole page!
+        scope = self.main_section or self.soup
+
         PRICE_SELECTORS = [
-            '.m-price-wrap',   # main listing price container on most modern bon.ua pages
-            '.price-wrap',     # older variant
+            '.m-price-wrap',
+            '.price-wrap',
             '[class*="price-value"]',
             '[class*="offer-price"]',
         ]
         for selector in PRICE_SELECTORS:
-            el = self.soup.select_one(selector)
+            el = scope.select_one(selector)
             if el:
                 text = el.get_text(" ", strip=True)
                 m = re.search(r'([\d][\d\s]*)\s*(грн|uah|\$|€|usd|eur)', text, re.IGNORECASE)
@@ -82,7 +108,7 @@ class BonUaParser:
                             currency = "EUR"
                         return price, currency
 
-        # JSON-LD structured data fallback (reliable)
+        # JSON-LD structured data fallback (reliable and not scoped to msg-inner)
         import json
         for script in self.soup.find_all('script', type='application/ld+json'):
             try:
@@ -99,24 +125,6 @@ class BonUaParser:
             except Exception:
                 pass
 
-        # Last resort: look in og:description or title meta
-        # (avoid scraping the whole page_text which catches sidebar prices)
-        for meta_prop in ['og:description', 'og:title']:
-            el = self.soup.find('meta', property=meta_prop)
-            if el:
-                text = el.get('content', '')
-                m = re.search(r'([\d][\d\s]{3,})\s*(грн|uah|\$|€|usd|eur)', text, re.IGNORECASE)
-                if m:
-                    candidate = float(m.group(1).replace(' ', ''))
-                    if candidate > 0:
-                        price = candidate
-                        curr_str = m.group(2).lower()
-                        if '$' in curr_str or 'usd' in curr_str:
-                            currency = "USD"
-                        elif '€' in curr_str or 'eur' in curr_str:
-                            currency = "EUR"
-                        return price, currency
-
         return price, currency
 
     def get_specs(self):
@@ -124,16 +132,13 @@ class BonUaParser:
         area = None
 
         # Verbal replacements for rooms
-        verbal = {'одно': 1, 'дво': 2, 'три': 3, 'чотири': 4, 'п\'яти': 5, 'шести': 6}
+        verbal = {'одно': 1, 'дво': 2, 'три': 3, 'чотири': 4, "п'яти": 5, 'шести': 6}
         for k, v in verbal.items():
             if f'{k}кімнатн' in self.title.lower() or f'{k}комнатн' in self.title.lower():
                 rooms = v
                 break
 
         if not rooms:
-            # Explicit long patterns first (кімнат/комнат), then к/ком/кім with strict boundaries.
-            # The '3-х комнатну' case: match digit + optional 'х ' + комнат.
-            # Negative: exclude кв.м (кв = square metre) and квартал.
             m = re.search(
                 r'(\d+)[\s\-]*(?:х\s*)?(?:кімнат\w*|комнат\w*)',
                 self.title, re.IGNORECASE
@@ -148,9 +153,11 @@ class BonUaParser:
                 if 1 <= candidate <= 10:
                     rooms = candidate
 
+        # Scope area + room search to main section only
+        scope = self.main_section or self.soup
+
         if not rooms:
-            # Structured data fallback: look for 'Кількість кімнат' in page lists
-            for li in self.soup.select('li'):
+            for li in scope.select('li'):
                 text = li.get_text(" ", strip=True)
                 if 'Кількість кімнат' in text or 'Кімнат' in text:
                     m = re.search(r'(\d+)', text)
@@ -160,8 +167,7 @@ class BonUaParser:
                             rooms = candidate
                         break
 
-        # Robust regex for Area
-        for li in self.soup.select('li, table tr'):
+        for li in scope.select('li, table tr'):
             text = li.get_text(" ", strip=True)
             if 'Загальна площа' in text or 'Площа' in text:
                 m = re.search(r'(\d+(?:[\.,]\d+)?)', text.replace('Загальна площа', '').replace('Площа', ''))
@@ -169,9 +175,9 @@ class BonUaParser:
                     try:
                         area = float(m.group(1).replace(',', '.'))
                         break
-                    except ValueError: 
+                    except ValueError:
                         pass
-                    
+
         if not area:
             area_match = re.search(r'(\d+(?:[\.,]\d+)?)\s*(?:кв\.?м|м2)', self.page_text, re.IGNORECASE)
             if area_match:
@@ -259,6 +265,11 @@ class BonUaParser:
         return images
 
     def parse(self):
+        # If we couldn't find the current listing's section, the page
+        # is showing similar/related listings. The listing is expired/sold.
+        if self.main_section is None:
+            return None
+
         price, currency = self.get_price_data()
         rooms, area = self.get_specs()
         address, city, district, region = self.get_location()
