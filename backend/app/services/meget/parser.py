@@ -148,34 +148,8 @@ class ListingParser:
                     city = normalized
                     break
 
-        # AI parsing
-        from app.services.ai_address_parser import AIAddressParser
-
-        breadcrumbs_text = " > ".join([a.text.strip() for a in breadcrumbs.find_all('a')]) if breadcrumbs else ""
-
-        ai_result = AIAddressParser.parse(
-            title=self.title,
-            description=self.page_text,
-            breadcrumbs_text=breadcrumbs_text
-        )
-
-        if ai_result and ai_result.get('city'):
-            city = ai_result.get('city')
-            region = ai_result.get('region') or region
-            district = ai_result.get('district') or district
-
-            parts = []
-            if ai_result.get('street'):
-                parts.append(ai_result['street'])
-            if ai_result.get('number'):
-                parts.append(ai_result['number'])
-
-            address = ", ".join(parts) if parts else city
-
-            if city not in address:
-                address = f"{city}, {address}"
-
-        elif not address:
+        # Fallback to AddressNormalizer
+        if not address:
             cleaned_title = re.sub(r'(Продажа|Продам).*?(квартиры|квартиру)', '', self.title, flags=re.IGNORECASE)
             cleaned_title = re.sub(r'Объявление №\d+', '', cleaned_title)
 
