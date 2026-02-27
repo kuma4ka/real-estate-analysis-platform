@@ -16,10 +16,17 @@ const formatPrice = (value: number) => {
 };
 
 const AnalyticsDashboard: React.FC = () => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [stats, setStats] = useState<StatsData | null>(null);
     const [loading, setLoading] = useState(true);
     const [drilldownOpen, setDrilldownOpen] = useState(false);
+
+    // Translate city name from Ukrainian DB value to active locale
+    const translateCity = (name: string): string => {
+        if (i18n.language === 'uk') return name;
+        const translated = t(`cities.${name}`, { defaultValue: '' });
+        return translated || name;
+    };
 
     useEffect(() => {
         const load = async () => {
@@ -128,7 +135,7 @@ const AnalyticsDashboard: React.FC = () => {
                                 labelStyle={{ color: 'var(--chart-text-bold)' }}
                                 formatter={((value: number, _name: string, props: { payload: { avg_price: number; rooms: number } }) => [
                                     props.payload.rooms === 99
-                                        ? `${value} — натисніть для деталей`
+                                        ? `${value} — ${t('analytics_click_details')}`
                                         : `${value} (avg ${formatPrice(props.payload.avg_price)})`,
                                     `${roomLabel(props.payload.rooms)} ${t('rooms')}`
                                 ]) as any}
@@ -142,14 +149,21 @@ const AnalyticsDashboard: React.FC = () => {
                 <div className="bg-surface rounded-xl border border-border p-5 shadow-card">
                     <h3 className="text-sm font-semibold text-text-main mb-4">{t('analytics_by_city')}</h3>
                     <ResponsiveContainer width="100%" height={280}>
-                        <BarChart data={stats.by_city} layout="vertical" margin={{ left: 80 }}>
+                        <BarChart data={stats.by_city} layout="vertical" margin={{ left: 10 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                             <XAxis type="number" tick={{ fill: 'var(--chart-text)', fontSize: 12 }} />
-                            <YAxis type="category" dataKey="city" tick={{ fill: 'var(--chart-text-bold)', fontSize: 12 }} width={75} />
+                            <YAxis
+                                type="category"
+                                dataKey="city"
+                                tick={{ fill: 'var(--chart-text-bold)', fontSize: 11 }}
+                                width={140}
+                                tickFormatter={translateCity}
+                            />
                             <Tooltip
                                 contentStyle={{ background: 'var(--tooltip-bg)', border: '1px solid var(--tooltip-border)', borderRadius: '10px', fontSize: 13 }}
                                 itemStyle={{ color: 'var(--chart-text-bold)' }}
                                 labelStyle={{ color: 'var(--chart-text-bold)' }}
+                                labelFormatter={(label) => translateCity(String(label))}
                                 formatter={((value: number) => [value, t('analytics_count')]) as any}
                             />
                             <Bar dataKey="count" fill="#5bc0c4" radius={[0, 4, 4, 0]} />
@@ -230,7 +244,7 @@ const AnalyticsDashboard: React.FC = () => {
                 >
                     <div className="flex items-center justify-between mb-5">
                         <h3 className="text-base font-bold text-text-main">
-                            Деталі: квартири 4+ кімнат
+                            {t('analytics_4plus_title')}
                         </h3>
                         <button
                             onClick={() => setDrilldownOpen(false)}
@@ -250,16 +264,16 @@ const AnalyticsDashboard: React.FC = () => {
                                 itemStyle={{ color: 'var(--chart-text-bold)' }}
                                 formatter={((value: number, name: string, props: { payload: { avg_price: number } }) => [
                                     name === 'count'
-                                        ? `${value} оголошень (avg ${formatPrice(props.payload.avg_price)})`
+                                        ? `${value} (avg ${formatPrice(props.payload.avg_price)})`
                                         : formatPrice(value),
-                                    name === 'count' ? 'Кількість' : 'Сер. ціна'
+                                    name === 'count' ? t('analytics_count_label') : t('analytics_avg_price_label')
                                 ]) as any}
                             />
                             <Bar dataKey="count" fill="#b4ebca" radius={[4, 4, 0, 0]} name="count" />
                         </BarChart>
                     </ResponsiveContainer>
                     <p className="text-xs text-text-muted mt-3 text-center">
-                        Всього {extraRooms.reduce((s, r) => s + r.count, 0)} оголошень з 4+ кімнатами
+                        {t('analytics_4plus_count', { count: extraRooms.reduce((s, r) => s + r.count, 0) })}
                     </p>
                 </div>
             </div>
