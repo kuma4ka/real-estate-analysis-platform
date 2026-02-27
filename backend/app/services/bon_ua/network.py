@@ -2,10 +2,10 @@ import cloudscraper
 import time
 
 def fetch_html(url, retries=3, timeout=15):
-    # Try different configurations across retries
     configs = [
-        {'browser': 'chrome', 'platform': 'windows', 'mobile': False},
         {'browser': 'firefox', 'platform': 'linux', 'mobile': False},
+        {'browser': 'firefox', 'platform': 'windows', 'mobile': False},
+        {'browser': 'chrome', 'platform': 'windows', 'mobile': False},
         {'custom': 'ScraperBot/1.0'}
     ]
 
