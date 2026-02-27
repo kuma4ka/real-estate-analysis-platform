@@ -118,7 +118,27 @@ def process_url_in_thread(url, app_config, scrape_func):
 
         data = scrape_func(url)
         if not data:
+            # Listing expired (returned None): mark it inactive if it exists in DB
+            try:
+                expired = Property.query.filter_by(source_url=url).first()
+                if expired and expired.is_active:
+                    expired.is_active = False
+                    db.session.commit()
+                    return {'status': 'error', 'url': url, 'msg': 'Listing expired - marked inactive'}
+            except Exception:
+                pass
             return {'status': 'error', 'url': url, 'msg': 'Scrape failed'}
+
+
+        # Normalize currency to USD using live NBU rates
+        from app.services.currency import convert_to_usd
+        raw_price = data.get('price', 0)
+        raw_currency = data.get('currency', 'UAH')
+        
+        # We only convert if price > 0
+        if raw_price > 0 and raw_currency != 'USD':
+            data['price'] = convert_to_usd(raw_price, raw_currency)
+            data['currency'] = 'USD'
 
         is_valid, rejection_reason = ListingValidator.validate(data)
 
@@ -418,3 +438,61 @@ def backfill_images(limit):
     db.session.commit()
     print(f"\nDone. Updated {updated}/{len(props)} properties.")
 
+
+@click.command('convert-currencies')
+@with_appcontext
+def convert_currencies_command():
+    """Converts all historical property prices from UAH/EUR to USD."""
+    from app.services.currency import convert_to_usd
+    
+    props = Property.query.filter(Property.currency != 'USD').all()
+    print(f"Found {len(props)} properties with non-USD currencies.")
+    
+    updated = 0
+    for i, p in enumerate(props, 1):
+        if not p.price or p.price <= 0:
+            continue
+            
+        old_price = p.price
+        old_curr = p.currency
+        
+        new_price = convert_to_usd(old_price, old_curr)
+        p.price = new_price
+        p.currency = 'USD'
+        updated += 1
+        
+        print(f"[{i}/{len(props)}] #{p.id}: {old_price} {old_curr} -> {new_price:.0f} USD")
+        
+        if i % 100 == 0:
+            db.session.commit()
+            
+    db.session.commit()
+    print(f"\nDone. Converted {updated} properties to USD.")
+
+
+@click.command('rescrape-duplicates')
+@click.option('--min-count', default=20, help='Min duplicate count to flag a price as suspicious')
+@click.option('--workers', default=5, help='Number of parallel scrape threads')
+@with_appcontext
+def rescrape_duplicates_command(min_count, workers):
+    """Re-scrapes bon_ua listings with suspiciously duplicated prices."""
+    from sqlalchemy import func as sqlfunc
+
+    # Find prices that appear too often (suspiciously)
+    duplicate_prices = db.session.query(Property.price).filter(
+        Property.source_website == 'bon_ua',
+        Property.source_url.isnot(None),
+    ).group_by(Property.price).having(sqlfunc.count(Property.id) >= min_count).all()
+
+    bad_prices = {r[0] for r in duplicate_prices}
+    print(f"Found {len(bad_prices)} suspicious price value(s): {[round(p, 0) for p in bad_prices]}")
+
+    urls = [
+        p.source_url for p in Property.query.filter(
+            Property.source_website == 'bon_ua',
+            Property.price.in_(list(bad_prices)),
+        ).all()
+    ]
+    print(f"Queued {len(urls)} listings for re-scraping...")
+
+    _execute_scraping(urls, workers, scrape_bon_ua_listing)
