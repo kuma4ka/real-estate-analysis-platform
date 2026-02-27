@@ -1,0 +1,5 @@
+# Ensure cron files always use Unix LF line endings (CRLF breaks crontab parsing in Linux containers)
+backend/cron/crontab text eol=lf
+
+# Shell scripts must use LF
+*.sh text eol=lf
