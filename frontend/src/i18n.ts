@@ -43,6 +43,12 @@ const resources = {
             "analytics_4plus_count": "{{count}} listings with 4+ rooms",
             "analytics_count_label": "Count",
             "analytics_avg_price_label": "Avg. Price",
+            "analytics_avg_price_m2": "Avg $/m²",
+            "analytics_city_metric_count": "Count",
+            "analytics_city_metric_price": "Avg Price",
+            "analytics_city_metric_m2": "Avg $/m²",
+            "analytics_price_by_rooms": "Price by Rooms",
+            "analytics_price_change": "Change",
             "cities": {
                 "Київ": "Kyiv",
                 "Харків": "Kharkiv",
@@ -128,6 +134,12 @@ const resources = {
             "analytics_4plus_count": "{{count}} оголошень з 4+ кімнатами",
             "analytics_count_label": "Кількість",
             "analytics_avg_price_label": "Сер. ціна",
+            "analytics_avg_price_m2": "Сер. $/м²",
+            "analytics_city_metric_count": "Кількість",
+            "analytics_city_metric_price": "Сер. ціна",
+            "analytics_city_metric_m2": "Сер. $/м²",
+            "analytics_price_by_rooms": "Ціна за кімнатами",
+            "analytics_price_change": "Зміна",
             "cities": {}
         }
     }

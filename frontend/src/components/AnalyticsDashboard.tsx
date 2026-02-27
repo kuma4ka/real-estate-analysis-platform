@@ -20,6 +20,7 @@ const AnalyticsDashboard: React.FC = () => {
     const [stats, setStats] = useState<StatsData | null>(null);
     const [loading, setLoading] = useState(true);
     const [drilldownOpen, setDrilldownOpen] = useState(false);
+    const [cityMetric, setCityMetric] = useState<'count' | 'avg_price' | 'avg_price_per_m2'>('count');
 
     // Translate city name from Ukrainian DB value to active locale
     const translateCity = (name: string): string => {
@@ -62,6 +63,7 @@ const AnalyticsDashboard: React.FC = () => {
         { label: t('analytics_total'), value: stats.total_listings.toLocaleString(), color: 'text-primary' },
         { label: t('analytics_avg_price'), value: `$${stats.avg_price_usd.toLocaleString()}`, color: 'text-[#5bc0c4]' },
         { label: t('analytics_avg_area'), value: `${stats.avg_area} ${t('area_unit')}`, color: 'text-[#49adb1]' },
+        { label: t('analytics_avg_price_m2'), value: `$${stats.avg_price_per_m2?.toLocaleString() ?? '—'}/m²`, color: 'text-[#b4ebca]' },
     ];
 
     // Group rooms: 1, 2, 3, then bucket everything 4+ together
@@ -146,8 +148,30 @@ const AnalyticsDashboard: React.FC = () => {
                 </div>
 
                 {/* By City — Bar */}
-                <div className="bg-surface rounded-xl border border-border p-5 shadow-card">
-                    <h3 className="text-sm font-semibold text-text-main mb-4">{t('analytics_by_city')}</h3>
+                <div className="bg-surface rounded-xl border border-border p-5 shadow-card flex flex-col">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-sm font-semibold text-text-main">{t('analytics_by_city')}</h3>
+                        <div className="flex gap-1 bg-background p-1 rounded-lg border border-border">
+                            <button
+                                onClick={() => setCityMetric('count')}
+                                className={`px-2 py-1 text-xs rounded transition-colors ${cityMetric === 'count' ? 'bg-primary text-white' : 'text-text-muted hover:text-text-main'}`}
+                            >
+                                {t('analytics_city_metric_count')}
+                            </button>
+                            <button
+                                onClick={() => setCityMetric('avg_price')}
+                                className={`px-2 py-1 text-xs rounded transition-colors ${cityMetric === 'avg_price' ? 'bg-[#5bc0c4] text-white' : 'text-text-muted hover:text-text-main'}`}
+                            >
+                                {t('analytics_city_metric_price')}
+                            </button>
+                            <button
+                                onClick={() => setCityMetric('avg_price_per_m2')}
+                                className={`px-2 py-1 text-xs rounded transition-colors ${cityMetric === 'avg_price_per_m2' ? 'bg-[#b4ebca] text-white' : 'text-text-muted hover:text-text-main'}`}
+                            >
+                                {t('analytics_city_metric_m2')}
+                            </button>
+                        </div>
+                    </div>
                     <ResponsiveContainer width="100%" height={280}>
                         <BarChart data={stats.by_city} layout="vertical" margin={{ left: 10 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
@@ -164,16 +188,43 @@ const AnalyticsDashboard: React.FC = () => {
                                 itemStyle={{ color: 'var(--chart-text-bold)' }}
                                 labelStyle={{ color: 'var(--chart-text-bold)' }}
                                 labelFormatter={(label) => translateCity(String(label))}
-                                formatter={((value: number) => [value, t('analytics_count')]) as any}
+                                formatter={((value: number) => {
+                                    if (cityMetric === 'count') return [value, t('analytics_city_metric_count')];
+                                    if (cityMetric === 'avg_price_per_m2') return [`$${value}/m²`, t('analytics_city_metric_m2')];
+                                    return [formatPrice(value), t('analytics_city_metric_price')];
+                                }) as any}
                             />
-                            <Bar dataKey="count" fill="#5bc0c4" radius={[0, 4, 4, 0]} />
+                            <Bar 
+                                dataKey={cityMetric} 
+                                fill={cityMetric === 'count' ? '#5bc0c4' : cityMetric === 'avg_price' ? '#b4ebca' : '#d9f2b4'} 
+                                radius={[0, 4, 4, 0]} 
+                            />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
             </div>
 
-            {/* Charts Row 2: Price Histogram + Trend */}
+            {/* Charts Row 2: Price by Rooms + Price Distribution */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                {/* Price by Rooms */}
+                <div className="bg-surface rounded-xl border border-border p-5 shadow-card">
+                    <h3 className="text-sm font-semibold text-text-main mb-4">{t('analytics_price_by_rooms')}</h3>
+                    <ResponsiveContainer width="100%" height={280}>
+                        <BarChart data={stats.by_rooms} margin={{ top: 20 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                            <XAxis dataKey="rooms" tickFormatter={(v: number) => `${v}к`} tick={{ fill: 'var(--chart-text)', fontSize: 12 }} />
+                            <YAxis tick={{ fill: 'var(--chart-text)', fontSize: 12 }} tickFormatter={formatPrice} />
+                            <Tooltip
+                                contentStyle={{ background: 'var(--tooltip-bg)', border: '1px solid var(--tooltip-border)', borderRadius: '10px', fontSize: 13 }}
+                                itemStyle={{ color: 'var(--chart-text-bold)' }}
+                                labelFormatter={(label) => `${label} ${t('rooms')}`}
+                                formatter={((value: number) => [formatPrice(value), t('analytics_avg_price_label')]) as any}
+                            />
+                            <Bar dataKey="avg_price" fill="#b4ebca" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+
                 {/* Price Distribution */}
                 <div className="bg-surface rounded-xl border border-border p-5 shadow-card">
                     <h3 className="text-sm font-semibold text-text-main mb-4">{t('analytics_price_dist')}</h3>
@@ -191,11 +242,12 @@ const AnalyticsDashboard: React.FC = () => {
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
+            </div>
 
-                {/* Recent Trend */}
-                <div className="bg-surface rounded-xl border border-border p-5 shadow-card">
-                    <h3 className="text-sm font-semibold text-text-main mb-4">{t('analytics_trend')}</h3>
-                    <ResponsiveContainer width="100%" height={280}>
+            {/* Charts Row 3: Recent Trend (Full width) */}
+            <div className="bg-surface rounded-xl border border-border p-5 shadow-card">
+                <h3 className="text-sm font-semibold text-text-main mb-4">{t('analytics_trend')}</h3>
+                <ResponsiveContainer width="100%" height={280}>
                         <AreaChart data={stats.recent_trend}>
                             <defs>
                                 <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
@@ -215,8 +267,13 @@ const AnalyticsDashboard: React.FC = () => {
                                 contentStyle={{ background: 'var(--tooltip-bg)', border: '1px solid var(--tooltip-border)', borderRadius: '10px', fontSize: 13 }}
                                 itemStyle={{ color: 'var(--chart-text-bold)' }}
                                 labelStyle={{ color: 'var(--chart-text-bold)' }}
-                                formatter={((value: number, _name: string, props: { dataKey: string }) => {
+                                formatter={((value: number, _name: string, props: { dataKey: string, payload: { price_change_pct: number | null } }) => {
                                     const isPrice = props.dataKey === 'avg_price';
+                                    if (isPrice && props.payload.price_change_pct !== null) {
+                                        const change = props.payload.price_change_pct;
+                                        const sign = change > 0 ? '+' : '';
+                                        return [`${formatPrice(value)} (${sign}${change}%)`, t('analytics_avg_price')];
+                                    }
                                     return [
                                         isPrice ? formatPrice(value) : value,
                                         isPrice ? t('analytics_avg_price') : t('analytics_count'),
@@ -229,7 +286,6 @@ const AnalyticsDashboard: React.FC = () => {
                         </AreaChart>
                     </ResponsiveContainer>
                 </div>
-            </div>
         </div>
 
         {/* 4+ Drilldown Modal */}
