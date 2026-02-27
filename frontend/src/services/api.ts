@@ -45,10 +45,11 @@ export interface StatsData {
     total_listings: number;
     avg_price_usd: number;
     avg_area: number;
-    by_city: { city: string; count: number; avg_price: number }[];
+    avg_price_per_m2: number;
+    by_city: { city: string; count: number; avg_price: number; avg_price_per_m2: number }[];
     by_rooms: { rooms: number; count: number; avg_price: number }[];
     price_histogram: { range: string; count: number }[];
-    recent_trend: { date: string; count: number; avg_price: number }[];
+    recent_trend: { date: string; count: number; avg_price: number; price_change_pct: number | null }[];
 }
 
 export const fetchStats = async (): Promise<StatsData> => {
