@@ -120,6 +120,16 @@ def process_url_in_thread(url, app_config, scrape_func):
         if not data:
             return {'status': 'error', 'url': url, 'msg': 'Scrape failed'}
 
+        # Normalize currency to USD using live NBU rates
+        from app.services.currency import convert_to_usd
+        raw_price = data.get('price', 0)
+        raw_currency = data.get('currency', 'UAH')
+        
+        # We only convert if price > 0
+        if raw_price > 0 and raw_currency != 'USD':
+            data['price'] = convert_to_usd(raw_price, raw_currency)
+            data['currency'] = 'USD'
+
         is_valid, rejection_reason = ListingValidator.validate(data)
 
         try:
@@ -418,3 +428,33 @@ def backfill_images(limit):
     db.session.commit()
     print(f"\nDone. Updated {updated}/{len(props)} properties.")
 
+
+@click.command('convert-currencies')
+@with_appcontext
+def convert_currencies_command():
+    """Converts all historical property prices from UAH/EUR to USD."""
+    from app.services.currency import convert_to_usd
+    
+    props = Property.query.filter(Property.currency != 'USD').all()
+    print(f"Found {len(props)} properties with non-USD currencies.")
+    
+    updated = 0
+    for i, p in enumerate(props, 1):
+        if not p.price or p.price <= 0:
+            continue
+            
+        old_price = p.price
+        old_curr = p.currency
+        
+        new_price = convert_to_usd(old_price, old_curr)
+        p.price = new_price
+        p.currency = 'USD'
+        updated += 1
+        
+        print(f"[{i}/{len(props)}] #{p.id}: {old_price} {old_curr} -> {new_price:.0f} USD")
+        
+        if i % 100 == 0:
+            db.session.commit()
+            
+    db.session.commit()
+    print(f"\nDone. Converted {updated} properties to USD.")

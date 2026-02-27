@@ -4,20 +4,12 @@ from app.models import Property
 from app.api import bp
 
 
-def _price_usd_expr():
-    return case(
-        (Property.currency == 'UAH', Property.price / 41.0),
-        else_=Property.price
-    )
-
-
 @bp.route('/stats', methods=['GET'])
 def get_stats():
-    price_usd = _price_usd_expr()
     base_query = Property.query.filter(Property.is_active)
     total = base_query.count()
 
-    avg_price_raw = base_query.with_entities(func.avg(price_usd)).scalar() or 0
+    avg_price_raw = base_query.with_entities(func.avg(Property.price)).scalar() or 0
 
     avg_area = Property.query.with_entities(
         func.avg(Property.area)
@@ -25,7 +17,7 @@ def get_stats():
 
     # Avg price per m² (global)
     avg_price_per_m2 = Property.query.with_entities(
-        func.avg(price_usd / Property.area)
+        func.avg(Property.price / Property.area)
     ).filter(
         Property.is_active,
         Property.area.isnot(None),
@@ -37,10 +29,10 @@ def get_stats():
     by_city = Property.query.with_entities(
         Property.city,
         func.count(Property.id).label('count'),
-        func.avg(price_usd).label('avg_price'),
+        func.avg(Property.price).label('avg_price'),
         func.avg(
             case(
-                (Property.area > 0, price_usd / Property.area),
+                (Property.area > 0, Property.price / Property.area),
                 else_=None
             )
         ).label('avg_price_per_m2'),
@@ -52,7 +44,7 @@ def get_stats():
     by_rooms = Property.query.with_entities(
         Property.rooms,
         func.count(Property.id).label('count'),
-        func.avg(price_usd).label('avg_price'),
+        func.avg(Property.price).label('avg_price'),
     ).filter(
         Property.rooms.isnot(None)
     ).group_by(Property.rooms).order_by(Property.rooms).all()
@@ -70,16 +62,16 @@ def get_stats():
     for low, high, label in price_ranges:
         q = Property.query.filter(Property.price.isnot(None))
         if high == float('inf'):
-            count = q.filter(price_usd >= low).count()
+            count = q.filter(Property.price >= low).count()
         else:
-            count = q.filter(price_usd >= low, price_usd < high).count()
+            count = q.filter(Property.price >= low, Property.price < high).count()
         price_histogram.append({'range': label, 'count': count})
 
     # Daily trend with % price change vs previous day
     trend_rows = Property.query.with_entities(
         func.date(Property.created_at).label('date'),
         func.count(Property.id).label('count'),
-        func.avg(price_usd).label('avg_price'),
+        func.avg(Property.price).label('avg_price'),
     ).group_by(func.date(Property.created_at)).order_by(
         func.date(Property.created_at)
     ).limit(30).all()

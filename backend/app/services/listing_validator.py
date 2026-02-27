@@ -1,7 +1,5 @@
 import re
 
-
-MIN_PRICE_UAH = 50_000
 MIN_PRICE_USD = 2_000
 MIN_TITLE_LENGTH = 15
 
@@ -19,16 +17,11 @@ SPAM_PATTERNS = [
 ]
 
 SPAM_REGEX = re.compile('|'.join(SPAM_PATTERNS), re.IGNORECASE)
-
-UAH_TO_USD_APPROX = 1 / 41.0
-
-
 class ListingValidator:
     @classmethod
     def validate(cls, data: dict) -> tuple[bool, str | None]:
         title = data.get('title', '')
         price = data.get('price', 0)
-        currency = data.get('currency', 'UAH')
         area = data.get('area')
 
         if len(title) < MIN_TITLE_LENGTH:
@@ -40,14 +33,11 @@ class ListingValidator:
         if not price or price <= 0:
             return False, "No price"
 
-        price_usd = price * UAH_TO_USD_APPROX if currency == 'UAH' else price
-        if currency == 'UAH' and price < MIN_PRICE_UAH:
-            return False, f"Price too low: {price} UAH"
-        if currency == 'USD' and price < MIN_PRICE_USD:
+        if price < MIN_PRICE_USD:
             return False, f"Price too low: ${price}"
 
-        if area and area > 0 and price_usd > 0:
-            price_per_sqm = price_usd / area
+        if area and area > 0 and price > 0:
+            price_per_sqm = price / area
             if price_per_sqm < MIN_PRICE_PER_SQM_USD:
                 return False, f"Price/m² too low: ${price_per_sqm:.0f}/m² (min ${MIN_PRICE_PER_SQM_USD})"
             if price_per_sqm > MAX_PRICE_PER_SQM_USD:
