@@ -78,6 +78,10 @@ const resources = {
                 "Маріуполь": "Mariupol",
                 "Кременчук": "Kremenchuk",
                 "Кременець": "Kremenets",
+                // Russian-spelled variants stored in DB (legacy data)
+                "Софиевская Борщаговка": "Sofiivska Borshchahivka",
+                "СофиевскаяБорщаговка": "Sofiivska Borshchahivka",
+                "Проліски": "Prolisok",
             },
         }
     },
