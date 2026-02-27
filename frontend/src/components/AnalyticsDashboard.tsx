@@ -128,7 +128,7 @@ const AnalyticsDashboard: React.FC = () => {
                                 labelStyle={{ color: 'var(--chart-text-bold)' }}
                                 formatter={((value: number, _name: string, props: { payload: { avg_price: number; rooms: number } }) => [
                                     props.payload.rooms === 99
-                                        ? `${value} — натисніть для деталей`
+                                        ? `${value} — ${t('analytics_click_details')}`
                                         : `${value} (avg ${formatPrice(props.payload.avg_price)})`,
                                     `${roomLabel(props.payload.rooms)} ${t('rooms')}`
                                 ]) as any}
@@ -230,7 +230,7 @@ const AnalyticsDashboard: React.FC = () => {
                 >
                     <div className="flex items-center justify-between mb-5">
                         <h3 className="text-base font-bold text-text-main">
-                            Деталі: квартири 4+ кімнат
+                            {t('analytics_4plus_title')}
                         </h3>
                         <button
                             onClick={() => setDrilldownOpen(false)}
@@ -250,16 +250,16 @@ const AnalyticsDashboard: React.FC = () => {
                                 itemStyle={{ color: 'var(--chart-text-bold)' }}
                                 formatter={((value: number, name: string, props: { payload: { avg_price: number } }) => [
                                     name === 'count'
-                                        ? `${value} оголошень (avg ${formatPrice(props.payload.avg_price)})`
+                                        ? `${value} (avg ${formatPrice(props.payload.avg_price)})`
                                         : formatPrice(value),
-                                    name === 'count' ? 'Кількість' : 'Сер. ціна'
+                                    name === 'count' ? t('analytics_count_label') : t('analytics_avg_price_label')
                                 ]) as any}
                             />
                             <Bar dataKey="count" fill="#b4ebca" radius={[4, 4, 0, 0]} name="count" />
                         </BarChart>
                     </ResponsiveContainer>
                     <p className="text-xs text-text-muted mt-3 text-center">
-                        Всього {extraRooms.reduce((s, r) => s + r.count, 0)} оголошень з 4+ кімнатами
+                        {t('analytics_4plus_count', { count: extraRooms.reduce((s, r) => s + r.count, 0) })}
                     </p>
                 </div>
             </div>

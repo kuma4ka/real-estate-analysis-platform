@@ -38,6 +38,11 @@ const resources = {
             "analytics_trend": "Daily Trend",
             "analytics_count": "Count",
             "analytics_error": "Failed to load analytics",
+            "analytics_click_details": "click for details",
+            "analytics_4plus_title": "Details: 4+ room apartments",
+            "analytics_4plus_count": "{{count}} listings with 4+ rooms",
+            "analytics_count_label": "Count",
+            "analytics_avg_price_label": "Avg. Price",
         }
     },
     uk: {
@@ -75,6 +80,11 @@ const resources = {
             "analytics_trend": "Тренд за днями",
             "analytics_count": "Кількість",
             "analytics_error": "Не вдалося завантажити аналітику",
+            "analytics_click_details": "натисніть для деталей",
+            "analytics_4plus_title": "Деталі: квартири 4+ кімнат",
+            "analytics_4plus_count": "{{count}} оголошень з 4+ кімнатами",
+            "analytics_count_label": "Кількість",
+            "analytics_avg_price_label": "Сер. ціна",
         }
     }
 };
