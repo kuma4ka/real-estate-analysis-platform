@@ -81,6 +81,7 @@ const resources = {
                 // Russian-spelled variants stored in DB (legacy data)
                 "Софиевская Борщаговка": "Sofiivska Borshchahivka",
                 "СофиевскаяБорщаговка": "Sofiivska Borshchahivka",
+                "Софіївська Борщагівка": "Sofiivska Borshchahivka",
                 "СофіївськаБорщагівка": "Sofiivska Borshchahivka",
                 "Кременец": "Kremenets",
                 "Проліски": "Prolisok",

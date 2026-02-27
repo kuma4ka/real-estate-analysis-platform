@@ -149,14 +149,14 @@ const AnalyticsDashboard: React.FC = () => {
                 <div className="bg-surface rounded-xl border border-border p-5 shadow-card">
                     <h3 className="text-sm font-semibold text-text-main mb-4">{t('analytics_by_city')}</h3>
                     <ResponsiveContainer width="100%" height={280}>
-                        <BarChart data={stats.by_city} layout="vertical" margin={{ left: 90 }}>
+                        <BarChart data={stats.by_city} layout="vertical" margin={{ left: 10 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                             <XAxis type="number" tick={{ fill: 'var(--chart-text)', fontSize: 12 }} />
                             <YAxis
                                 type="category"
                                 dataKey="city"
-                                tick={{ fill: 'var(--chart-text-bold)', fontSize: 12 }}
-                                width={85}
+                                tick={{ fill: 'var(--chart-text-bold)', fontSize: 11 }}
+                                width={140}
                                 tickFormatter={translateCity}
                             />
                             <Tooltip
