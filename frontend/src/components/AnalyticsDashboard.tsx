@@ -19,6 +19,7 @@ const AnalyticsDashboard: React.FC = () => {
     const { t } = useTranslation();
     const [stats, setStats] = useState<StatsData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [drilldownOpen, setDrilldownOpen] = useState(false);
 
     useEffect(() => {
         const load = async () => {
@@ -56,7 +57,24 @@ const AnalyticsDashboard: React.FC = () => {
         { label: t('analytics_avg_area'), value: `${stats.avg_area} ${t('area_unit')}`, color: 'text-[#49adb1]' },
     ];
 
+    // Group rooms: 1, 2, 3, then bucket everything 4+ together
+    type RoomEntry = { rooms: number; count: number; avg_price: number };
+    const rawRooms: RoomEntry[] = stats.by_rooms ?? [];
+    const mainRooms = rawRooms.filter(r => r.rooms <= 3);
+    const extraRooms = rawRooms.filter(r => r.rooms >= 4);
+    const groupedRooms = [
+        ...mainRooms,
+        ...(extraRooms.length > 0 ? [{
+            rooms: 99 as number,
+            count: extraRooms.reduce((s, r) => s + r.count, 0),
+            avg_price: extraRooms.reduce((s, r) => s + r.avg_price * r.count, 0) /
+                       extraRooms.reduce((s, r) => s + r.count, 0),
+        }] : []),
+    ];
+    const roomLabel = (rooms: number) => rooms === 99 ? '4+' : String(rooms);
+
     return (
+        <>
         <div className="space-y-6">
             {/* Page Title */}
             <h2 className="text-2xl font-bold text-text-main">
@@ -81,17 +99,27 @@ const AnalyticsDashboard: React.FC = () => {
                     <ResponsiveContainer width="100%" height={280}>
                         <PieChart>
                             <Pie
-                                data={stats.by_rooms}
+                                data={groupedRooms}
                                 dataKey="count"
                                 nameKey="rooms"
                                 cx="50%" cy="50%"
                                 innerRadius={55}
                                 outerRadius={100}
                                 paddingAngle={3}
-                                label={((entry: { name: string; value: number }) => `${entry.name}R: ${entry.value}`) as any}
+                                label={((entry: { name: number; value: number }) => `${roomLabel(entry.name)}R: ${entry.value}`) as any}
+                                onClick={(_data: any, index: number) => {
+                                    if (groupedRooms[index]?.rooms === 99) setDrilldownOpen(true);
+                                }}
+                                style={{ cursor: 'pointer' }}
                             >
-                                {stats.by_rooms.map((_entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                {groupedRooms.map((entry, index) => (
+                                    <Cell
+                                        key={`cell-${index}`}
+                                        fill={CHART_COLORS[index % CHART_COLORS.length]}
+                                        opacity={entry.rooms === 99 ? 1 : 0.9}
+                                        stroke={entry.rooms === 99 ? '#fff' : 'none'}
+                                        strokeWidth={entry.rooms === 99 ? 2 : 0}
+                                    />
                                 ))}
                             </Pie>
                             <Tooltip
@@ -99,11 +127,13 @@ const AnalyticsDashboard: React.FC = () => {
                                 itemStyle={{ color: 'var(--chart-text-bold)' }}
                                 labelStyle={{ color: 'var(--chart-text-bold)' }}
                                 formatter={((value: number, _name: string, props: { payload: { avg_price: number; rooms: number } }) => [
-                                    `${value} (avg ${formatPrice(props.payload.avg_price)})`,
-                                    `${props.payload.rooms} ${t('rooms')}`
+                                    props.payload.rooms === 99
+                                        ? `${value} — натисніть для деталей`
+                                        : `${value} (avg ${formatPrice(props.payload.avg_price)})`,
+                                    `${roomLabel(props.payload.rooms)} ${t('rooms')}`
                                 ]) as any}
                             />
-                            <Legend />
+                            <Legend formatter={(value: any) => roomLabel(Number(value))} />
                         </PieChart>
                     </ResponsiveContainer>
                 </div>
@@ -184,7 +214,56 @@ const AnalyticsDashboard: React.FC = () => {
                 </div>
             </div>
         </div>
+
+        {/* 4+ Drilldown Modal */}
+        {drilldownOpen && (
+            <div
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+                onClick={() => setDrilldownOpen(false)}
+            >
+                <div
+                    className="bg-surface rounded-2xl border border-border p-6 shadow-2xl w-full max-w-lg mx-4"
+                    onClick={e => e.stopPropagation()}
+                >
+                    <div className="flex items-center justify-between mb-5">
+                        <h3 className="text-base font-bold text-text-main">
+                            Деталі: квартири 4+ кімнат
+                        </h3>
+                        <button
+                            onClick={() => setDrilldownOpen(false)}
+                            className="text-text-muted hover:text-text-main transition-colors text-xl leading-none"
+                            aria-label="Close"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                    <ResponsiveContainer width="100%" height={240}>
+                        <BarChart data={extraRooms} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                            <XAxis dataKey="rooms" tickFormatter={(v: number) => `${v}к`} tick={{ fill: 'var(--chart-text)', fontSize: 12 }} />
+                            <YAxis tick={{ fill: 'var(--chart-text)', fontSize: 12 }} />
+                            <Tooltip
+                                contentStyle={{ background: 'var(--tooltip-bg)', border: '1px solid var(--tooltip-border)', borderRadius: '10px', fontSize: 13 }}
+                                itemStyle={{ color: 'var(--chart-text-bold)' }}
+                                formatter={((value: number, name: string, props: { payload: { avg_price: number } }) => [
+                                    name === 'count'
+                                        ? `${value} оголошень (avg ${formatPrice(props.payload.avg_price)})`
+                                        : formatPrice(value),
+                                    name === 'count' ? 'Кількість' : 'Сер. ціна'
+                                ]) as any}
+                            />
+                            <Bar dataKey="count" fill="#b4ebca" radius={[4, 4, 0, 0]} name="count" />
+                        </BarChart>
+                    </ResponsiveContainer>
+                    <p className="text-xs text-text-muted mt-3 text-center">
+                        Всього {extraRooms.reduce((s, r) => s + r.count, 0)} оголошень з 4+ кімнатами
+                    </p>
+                </div>
+            </div>
+        )}
+        </>
     );
+
 };
 
 export default AnalyticsDashboard;

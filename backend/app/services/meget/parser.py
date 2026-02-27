@@ -44,11 +44,19 @@ class ListingParser:
         rooms = None
         area = None
 
-        rooms_match = re.search(r'(\d+)\s*[-]?\s*(?:к\b|ком\b|кім\b|к\s|ком\s|кім\s|к-)', self.title, re.IGNORECASE)
-        # Simplified: (\d+) followed by - and к/ком/кім
-        rooms_match = re.search(r'(\d+)\s*[-]?\s*(?:кім|ком|к)(?:\b|\s|-|[а-я])', self.title, re.IGNORECASE)
-        if rooms_match:
-            rooms = int(rooms_match.group(1))
+        m = re.search(
+            r'(\d+)[\s\-]*(?:х\s*)?(?:кімнат\w*|комнат\w*)',
+            self.title, re.IGNORECASE
+        )
+        if not m:
+            m = re.search(
+                r'(\d+)\s*[-]?\s*(?:кім|ком|к)(?!\u0432|\u043a\u0432\u0430\u0440)(?:\b|\s|-)',
+                self.title, re.IGNORECASE
+            )
+        if m:
+            candidate = int(m.group(1))
+            if 1 <= candidate <= 10:
+                rooms = candidate
 
         area_match = re.search(r'Площадь:.*?(\d+(?:[\.,]\d+)?)', self.page_text, re.IGNORECASE)
         if not area_match:
