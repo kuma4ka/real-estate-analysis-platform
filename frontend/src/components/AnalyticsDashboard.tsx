@@ -16,10 +16,17 @@ const formatPrice = (value: number) => {
 };
 
 const AnalyticsDashboard: React.FC = () => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [stats, setStats] = useState<StatsData | null>(null);
     const [loading, setLoading] = useState(true);
     const [drilldownOpen, setDrilldownOpen] = useState(false);
+
+    // Translate city name from Ukrainian DB value to active locale
+    const translateCity = (name: string): string => {
+        if (i18n.language === 'uk') return name;
+        const translated = t(`cities.${name}`, { defaultValue: '' });
+        return translated || name;
+    };
 
     useEffect(() => {
         const load = async () => {
@@ -142,14 +149,21 @@ const AnalyticsDashboard: React.FC = () => {
                 <div className="bg-surface rounded-xl border border-border p-5 shadow-card">
                     <h3 className="text-sm font-semibold text-text-main mb-4">{t('analytics_by_city')}</h3>
                     <ResponsiveContainer width="100%" height={280}>
-                        <BarChart data={stats.by_city} layout="vertical" margin={{ left: 80 }}>
+                        <BarChart data={stats.by_city} layout="vertical" margin={{ left: 90 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                             <XAxis type="number" tick={{ fill: 'var(--chart-text)', fontSize: 12 }} />
-                            <YAxis type="category" dataKey="city" tick={{ fill: 'var(--chart-text-bold)', fontSize: 12 }} width={75} />
+                            <YAxis
+                                type="category"
+                                dataKey="city"
+                                tick={{ fill: 'var(--chart-text-bold)', fontSize: 12 }}
+                                width={85}
+                                tickFormatter={translateCity}
+                            />
                             <Tooltip
                                 contentStyle={{ background: 'var(--tooltip-bg)', border: '1px solid var(--tooltip-border)', borderRadius: '10px', fontSize: 13 }}
                                 itemStyle={{ color: 'var(--chart-text-bold)' }}
                                 labelStyle={{ color: 'var(--chart-text-bold)' }}
+                                labelFormatter={(label) => translateCity(String(label))}
                                 formatter={((value: number) => [value, t('analytics_count')]) as any}
                             />
                             <Bar dataKey="count" fill="#5bc0c4" radius={[0, 4, 4, 0]} />
