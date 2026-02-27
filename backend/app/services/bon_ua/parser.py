@@ -99,19 +99,34 @@ class BonUaParser:
                 break
 
         if not rooms:
-            rooms_match = re.search(r'(\d+)\s*[-]?\s*(?:кім|ком|к)(?:\b|\s|-|[а-я])', self.title, re.IGNORECASE)
-            if not rooms_match:
-                # Try finding it in lists
-                for li in self.soup.select('li'):
-                    text = li.get_text(" ", strip=True)
-                    if 'Кількість кімнат' in text or 'Кімнат' in text:
-                        m = re.search(r'(\d+)', text)
-                        if m: 
-                            rooms = int(m.group(1))
-                            break
-            
-            if not rooms and rooms_match:
-                rooms = int(rooms_match.group(1))
+            # Explicit long patterns first (кімнат/комнат), then к/ком/кім with strict boundaries.
+            # The '3-х комнатну' case: match digit + optional 'х ' + комнат.
+            # Negative: exclude кв.м (кв = square metre) and квартал.
+            m = re.search(
+                r'(\d+)[\s\-]*(?:х\s*)?(?:кімнат\w*|комнат\w*)',
+                self.title, re.IGNORECASE
+            )
+            if not m:
+                m = re.search(
+                    r'(\d+)\s*[-]?\s*(?:кім|ком|к)(?!\u0432|\u043a\u0432\u0430\u0440)(?:\b|\s|-)',
+                    self.title, re.IGNORECASE
+                )
+            if m:
+                candidate = int(m.group(1))
+                if 1 <= candidate <= 10:
+                    rooms = candidate
+
+        if not rooms:
+            # Structured data fallback: look for 'Кількість кімнат' in page lists
+            for li in self.soup.select('li'):
+                text = li.get_text(" ", strip=True)
+                if 'Кількість кімнат' in text or 'Кімнат' in text:
+                    m = re.search(r'(\d+)', text)
+                    if m:
+                        candidate = int(m.group(1))
+                        if 1 <= candidate <= 10:
+                            rooms = candidate
+                        break
 
         # Robust regex for Area
         for li in self.soup.select('li, table tr'):
