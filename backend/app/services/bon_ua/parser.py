@@ -47,11 +47,10 @@ class BonUaParser:
         self.soup = BeautifulSoup(html, 'html.parser')
         self.url = url
 
-        # CRITICAL: bon.ua listing pages show a FEED of msg-inner cards:
-        #   [0] = promoted/featured listing (WRONG price!)
-        #   [N] = current listing (correct)
-        #   [M+] = related/similar listings
-        # We MUST scope parsing to the card that links to THIS URL.
+        # On a bon.ua listing page the TRUE listing content lives in div.card-body.
+        # The 3 div.msg-inner elements at the bottom are ALWAYS related/similar listings
+        # and should NEVER be used for the current listing's price or specs.
+        # If div.card-price is absent the listing has been removed (page shows replacements).
         self.main_section = self._find_main_section()
 
         self.page_text = (
@@ -61,52 +60,45 @@ class BonUaParser:
         self.title = self._get_title()
 
     def _find_main_section(self):
-        """Find the msg-inner block that corresponds to THIS listing, not promoted/related ones."""
-        slug = self.url.rstrip('/').split('/')[-1]
-        for msg in self.soup.select('div.msg-inner'):
-            if msg.find('a', href=lambda h: h and slug in (h or '')):
-                return msg
-        # Fallback: use the whole soup (may still have wrong price, but better than nothing)
+        """Returns the div.card-body container for the CURRENT listing.
+        Returns None if the listing is expired (page only shows related listings)."""
+        # Primary: bon.ua renders the listing detail inside .card-body
+        container = self.soup.select_one('div.card-body')
+        if container and container.select_one('div.card-price'):
+            return container
+        # Fallback: broader card container
+        for sel in ('div.card-container', 'div.card-content-wrapper'):
+            el = self.soup.select_one(sel)
+            if el and el.select_one('div.card-price'):
+                return el
         return None
 
     def _get_title(self):
-        # Prefer h1 from the main section, fallback to page-level h1
-        if self.main_section:
-            tag = self.main_section.find('h1') or self.main_section.find(class_='w-title')
-            if tag:
-                return tag.get_text(strip=True)
-        tag = self.soup.find('h1')
-        return tag.text.strip() if tag else "No Title"
+        # Use the card h1 for the most accurate title
+        tag = self.soup.select_one('h1.card-title') or self.soup.find('h1')
+        return tag.get_text(strip=True) if tag else "No Title"
 
     def get_price_data(self):
         price = 0.0
         currency = "UAH"
 
-        # Search ONLY in the correct msg-inner (current listing), not the whole page!
+        # Primary: div.card-price is the current listing's price, shown outside msg-inner
         scope = self.main_section or self.soup
-
-        PRICE_SELECTORS = [
-            '.m-price-wrap',
-            '.price-wrap',
-            '[class*="price-value"]',
-            '[class*="offer-price"]',
-        ]
-        for selector in PRICE_SELECTORS:
-            el = scope.select_one(selector)
-            if el:
-                text = el.get_text(" ", strip=True)
-                m = re.search(r'([\d][\d\s]*)\s*(грн|uah|\$|€|usd|eur)', text, re.IGNORECASE)
-                if m:
-                    amount_str = m.group(1).replace(' ', '')
-                    curr_str = m.group(2).lower()
-                    candidate = float(amount_str)
-                    if candidate > 0:
-                        price = candidate
-                        if '$' in curr_str or 'usd' in curr_str:
-                            currency = "USD"
-                        elif '€' in curr_str or 'eur' in curr_str:
-                            currency = "EUR"
-                        return price, currency
+        price_el = scope.select_one('div.card-price')
+        if price_el:
+            text = price_el.get_text(" ", strip=True)
+            m = re.search(r'([\d][\d\s]*)\s*(грн|uah|\$|€|usd|eur)', text, re.IGNORECASE)
+            if m:
+                amount_str = m.group(1).replace(' ', '')
+                curr_str = m.group(2).lower()
+                candidate = float(amount_str)
+                if candidate > 0:
+                    price = candidate
+                    if '$' in curr_str or 'usd' in curr_str:
+                        currency = "USD"
+                    elif '€' in curr_str or 'eur' in curr_str:
+                        currency = "EUR"
+                    return price, currency
 
         # JSON-LD structured data fallback (reliable and not scoped to msg-inner)
         import json
