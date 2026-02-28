@@ -184,9 +184,13 @@ class BonUaParser:
         city = None
         district = None
         region = None
+        address = None
         
-        # In bon.ua, breadcrumbs often contain GEO
-        breadcrumbs = self.soup.select('.breadcrumbs a, .breadcrumb a, [class*="bread"] a')
+        # In bon.ua, breadcrumbs contain city/region info
+        # bon.ua listing pages use div.card-breadcrumbs
+        breadcrumbs = self.soup.select(
+            'div.card-breadcrumbs a, .breadcrumbs a, .breadcrumb a, [class*="bread"] a'
+        )
         crumbs_text = [a.get_text(strip=True) for a in breadcrumbs]
         
         for crumb in crumbs_text:
@@ -214,12 +218,11 @@ class BonUaParser:
                     city = normalized
                     break
 
-        # Attempt to clean title for address
-        cleaned_title = re.sub(r'(Продажа|Продам).*?(квартиры|квартиру)', '', self.title, flags=re.IGNORECASE)
-        address = AddressNormalizer.extract_from_text(cleaned_title)
-        
+        # Only scan the title for address — scanning full page_text causes false positives
+        # (e.g., "Загальна площа: 72 м²" parsed as a street address)
         if not address:
-            address = AddressNormalizer.extract_from_text(self.page_text)
+            cleaned_title = re.sub(r'(Продажа|Продам).*?(квартиры|квартиру)', '', self.title, flags=re.IGNORECASE)
+            address = AddressNormalizer.extract_from_text(cleaned_title)
             
         if city and address and city not in address:
             address = f"{city}, {address}"

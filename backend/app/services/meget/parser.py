@@ -89,7 +89,7 @@ class ListingParser:
                         if not district:
                             district = link_text
                         continue
-                    city = normalize_city(link_text) or link_text
+                    city = normalize_city(link_text)
 
                 full_text = h2.get_text(" ", strip=True)
                 address = re.sub(r'\s+', ' ', full_text)

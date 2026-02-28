@@ -14,12 +14,13 @@ class AddressNormalizer:
         'проспект', 'просп.', 'просп', 'пр-т',
         'провулок', 'пров.', 'пер.', 'переулок',
         'бульвар', 'бульв.', 'б-р',
-        'площа', 'пл.', 'площадь',
         'узвіз', 'спуск',
         'набережна', 'наб.', 'набережная',
         'шосе', 'шоссе',
         'майдан', 'тупик'
     ]
+    # NOTE: 'площа'/'площадь' intentionally excluded — they match property area specs
+    # ("Загальна площа 72") causing garbage addresses.
 
     CITY_MARKERS = ['м.', 'г.', 'місто', 'город']
 
@@ -169,6 +170,13 @@ class AddressNormalizer:
 
         return text
 
+    # Words that immediately precede a 'площа' marker in property-spec context.
+    # If seen, the match is a spec ("Загальна площа 72 м²"), not a street.
+    AREA_SPEC_WORDS = {
+        'загальна', 'житлова', 'кухні', 'кухня', 'квартири',
+        'квартира', 'місто', 'будинку', 'поверху',
+    }
+
     @classmethod
     def extract_from_text(cls, text: str) -> str | None:
         """Extract a likely address from a block of text (description)."""
@@ -188,7 +196,13 @@ class AddressNormalizer:
 
         match = pattern_a.search(text)
         if match:
-            return cls._basic_clean(match.group(0))
+            # Reject if the word BEFORE the marker is a property-spec word
+            start = match.start()
+            prefix = text[max(0, start - 20):start].lower().split()
+            if prefix and prefix[-1].rstrip('.,') in cls.AREA_SPEC_WORDS:
+                pass  # fall through to pattern_b
+            else:
+                return cls._basic_clean(match.group(0))
 
         # Pattern: Name + Marker + Number
         pattern_b = re.compile(
@@ -201,6 +215,9 @@ class AddressNormalizer:
         if match:
             translations = cls._get_translations()
             if match.group(1) in translations or match.group(1) in translations.values():
+                return None
+            # Reject if name is a known spec word
+            if match.group(1).lower().rstrip('.,') in cls.AREA_SPEC_WORDS:
                 return None
             number = re.sub(r'^(буд\.|д\.)\s*', '', match.group(2))
             return f"вулиця {match.group(1)}, {number}"
