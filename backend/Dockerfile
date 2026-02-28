@@ -9,7 +9,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Setup cron
 COPY cron/crontab /etc/cron.d/scraper-cron
-RUN chmod 0644 /etc/cron.d/scraper-cron && crontab /etc/cron.d/scraper-cron
+RUN chmod 0644 /etc/cron.d/scraper-cron
 RUN touch /var/log/cron.log
 
 COPY . .
