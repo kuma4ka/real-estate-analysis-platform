@@ -20,7 +20,17 @@ body {
 @tailwind components;
 
 /* 6. Components (UI components) */
-/* Specific component styles can go here if not using utility classes directly */
+/* Recharts SVG text must be explicitly colored — SVG uses fill not color */
+.recharts-cartesian-axis-tick-value,
+.recharts-legend-item-text,
+.recharts-label,
+.recharts-text {
+    fill: var(--chart-text) !important;
+}
+.recharts-default-tooltip {
+    background: var(--tooltip-bg) !important;
+    border-color: var(--tooltip-border) !important;
+}
 
 /* 7. Trumps (Nav overrides, helpers) */
 @tailwind utilities;
