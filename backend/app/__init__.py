@@ -9,7 +9,7 @@ from config import Config
 db = SQLAlchemy()
 migrate = Migrate()
 ma = Marshmallow()
-limiter = Limiter(key_func=get_remote_address, default_limits=["200 per day", "50 per hour"])
+limiter = Limiter(key_func=get_remote_address)
 
 def create_app(config_class=Config):
     app = Flask(__name__)
