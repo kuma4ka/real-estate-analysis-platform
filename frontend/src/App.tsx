@@ -328,9 +328,7 @@ function App() {
                         </ProtectedRoute>
                     } />
                     <Route path="/*" element={
-                        <ProtectedRoute>
-                            <MainLayout />
-                        </ProtectedRoute>
+                        <MainLayout />
                     } />
                 </Routes>
             </Router>

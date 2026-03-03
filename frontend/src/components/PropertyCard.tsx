@@ -1,6 +1,8 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { Property } from '../types/property';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../context/AuthContext';
 
 interface PropertyCardProps {
     property: Property;
@@ -8,6 +10,8 @@ interface PropertyCardProps {
 
 const PropertyCard: React.FC<PropertyCardProps> = ({ property }) => {
     const { t } = useTranslation();
+    const { user } = useAuth();
+    const navigate = useNavigate();
 
     const formattedPrice = new Intl.NumberFormat('uk-UA', {
         style: 'currency',
@@ -17,17 +21,18 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property }) => {
 
     const imageUrl = (property.images && property.images.length > 0) ? property.images[0] : null;
 
-    const CardWrapper: React.ElementType = property.source_url ? 'a' : 'div';
-    const wrapperProps = property.source_url ? {
-        href: property.source_url,
-        target: "_blank",
-        rel: "noopener noreferrer"
-    } : {};
+    const isGuest = !user;
+    const CardWrapper: React.ElementType = (!isGuest && property.source_url) ? 'a' : 'div';
+    
+    // For users: open link in new tab. For guests: navigate to login.
+    const wrapperProps = (!isGuest && property.source_url) 
+        ? { href: property.source_url, target: "_blank", rel: "noopener noreferrer" } 
+        : { onClick: () => isGuest && navigate('/login'), role: isGuest ? "button" : undefined };
 
     return (
         <CardWrapper
             {...wrapperProps}
-            className="bg-surface rounded-xl shadow-card hover:shadow-card-hover transition-all duration-300 overflow-hidden border border-border flex flex-col h-full group"
+            className={`bg-surface rounded-xl shadow-card hover:shadow-card-hover transition-all duration-300 overflow-hidden border border-border flex flex-col h-full group relative ${isGuest ? 'cursor-pointer hover:ring-2 hover:ring-primary/50' : ''}`}
         >
             {/* Image */}
             <div className="h-44 bg-background relative overflow-hidden">
@@ -63,11 +68,19 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property }) => {
                     {property.address || property.city || '—'}
                 </p>
 
-                <div className="border-t border-border pt-3 mt-auto">
+                <div className="border-t border-border pt-3 mt-auto flex flex-col gap-2">
                     <div className="flex items-center justify-between text-sm text-text-muted">
                         <span>{property.area ? `${property.area} ${t('area_unit')}` : '—'}</span>
                         <span className="font-bold text-base text-text-main">{formattedPrice}</span>
                     </div>
+                    {isGuest && (
+                        <div className="flex items-center justify-center gap-1.5 mt-1 text-xs font-medium text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/20 py-1.5 px-2 rounded-md">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                            {t('login_to_view_contact', 'Sign in to view contacts')}
+                        </div>
+                    )}
                 </div>
             </div>
         </CardWrapper>
