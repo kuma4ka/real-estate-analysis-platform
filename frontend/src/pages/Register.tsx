@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../services/api';
+import AuthLayout from '../components/AuthLayout';
 
 const Register: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -55,7 +56,7 @@ const Register: React.FC = () => {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center">
+    <AuthLayout>
       <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg w-full max-w-md">
         <h2 className="text-2xl font-bold mb-6 text-center text-gray-900 dark:text-white">Create Account</h2>
         {error && <div className="bg-red-100 text-red-700 p-3 rounded mb-4">{error}</div>}
@@ -93,7 +94,7 @@ const Register: React.FC = () => {
           <a href="/login" className="text-blue-600 hover:underline">Already have an account? Sign in</a>
         </div>
       </div>
-    </div>
+    </AuthLayout>
   );
 };
 
