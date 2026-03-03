@@ -48,3 +48,5 @@ jupyter
 notebook
 cloudscraper
 cachetools==5.3.3
+PyJWT==2.8.0
+Flask-Limiter

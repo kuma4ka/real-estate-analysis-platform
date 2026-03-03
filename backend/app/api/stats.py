@@ -2,9 +2,11 @@ from flask import jsonify
 from sqlalchemy import func, case
 from app.models import Property
 from app.api import bp
+from app.core.auth import require_role
 
 
 @bp.route('/stats', methods=['GET'])
+@require_role('Analyst')
 def get_stats():
     base_query = Property.query.filter(Property.is_active)
     total = base_query.count()
@@ -84,15 +86,15 @@ def get_stats():
         if prev_p and prev_p > 0:
             price_change_pct = round((avg_p - prev_p) / prev_p * 100, 1)
         recent_trend.append({
-            'date': str(r[0]),
+            'month': str(r[0]),
             'count': r[1],
             'avg_price': avg_p,
             'price_change_pct': price_change_pct,
         })
 
     return jsonify({
-        'total_listings': total,
-        'avg_price_usd': round(avg_price_raw, 0),
+        'total_active': total,
+        'avg_price': round(avg_price_raw, 0),
         'avg_area': round(avg_area, 1),
         'avg_price_per_m2': round(avg_price_per_m2, 0),
         'by_city': [
@@ -108,6 +110,6 @@ def get_stats():
             {'rooms': r[0], 'count': r[1], 'avg_price': round(r[2] or 0, 0)}
             for r in by_rooms
         ],
-        'price_histogram': price_histogram,
+        'by_price_ranges': price_histogram,
         'recent_trend': recent_trend,
     })

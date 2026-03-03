@@ -1,6 +1,18 @@
 import type { PropertiesResponse, PropertyFilters, Property } from '../types/property';
 
-const API_BASE_URL = '/api/v1';
+export const API_BASE_URL = '/api/v1';
+
+// Helper to include JWT token
+export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
+    const token = localStorage.getItem('token');
+    const headers = new Headers(options.headers || {});
+    
+    if (token) {
+        headers.set('Authorization', `Bearer ${token}`);
+    }
+
+    return fetch(url, { ...options, headers });
+};
 
 export const fetchProperties = async (filters: PropertyFilters = {}): Promise<PropertiesResponse> => {
     try {
@@ -14,7 +26,7 @@ export const fetchProperties = async (filters: PropertyFilters = {}): Promise<Pr
         if (filters.price_max !== undefined && filters.price_max !== '') params.append('price_max', filters.price_max.toString());
         if (filters.sort) params.append('sort', filters.sort);
 
-        const response = await fetch(`${API_BASE_URL}/properties?${params.toString()}`);
+        const response = await fetchWithAuth(`${API_BASE_URL}/properties?${params.toString()}`);
 
         if (!response.ok) {
             throw new Error(`API Error: ${response.statusText}`);
@@ -30,7 +42,7 @@ export const fetchProperties = async (filters: PropertyFilters = {}): Promise<Pr
 
 export const fetchAllPropertiesForMap = async (): Promise<{ data: Property[], count: number }> => {
     try {
-        const response = await fetch(`${API_BASE_URL}/properties/map`);
+        const response = await fetchWithAuth(`${API_BASE_URL}/properties/map`);
         if (!response.ok) {
             throw new Error(`API Error: ${response.statusText}`);
         }
@@ -42,25 +54,48 @@ export const fetchAllPropertiesForMap = async (): Promise<{ data: Property[], co
 };
 
 export interface StatsData {
-    total_listings: number;
-    avg_price_usd: number;
+    total_active: number;
+    avg_price: number;
     avg_area: number;
     avg_price_per_m2: number;
     by_city: { city: string; count: number; avg_price: number; avg_price_per_m2: number }[];
     by_rooms: { rooms: number; count: number; avg_price: number }[];
+    by_price_ranges: { range: string; count: number }[];
     price_histogram: { range: string; count: number }[];
-    recent_trend: { date: string; count: number; avg_price: number; price_change_pct: number | null }[];
+    recent_trend: { month: string; count: number; avg_price: number; price_change_pct: number | null }[];
 }
 
 export const fetchStats = async (): Promise<StatsData> => {
     try {
-        const response = await fetch(`${API_BASE_URL}/stats`);
+        const response = await fetchWithAuth(`${API_BASE_URL}/stats`);
         if (!response.ok) {
             throw new Error(`API Error: ${response.statusText}`);
         }
         return await response.json();
     } catch (error) {
         console.error('Error fetching stats:', error);
+        throw error;
+    }
+};
+
+export const downloadStatsCsv = async (): Promise<void> => {
+    try {
+        const response = await fetchWithAuth(`${API_BASE_URL}/stats/export`);
+        if (!response.ok) {
+            throw new Error(`API Error: ${response.statusText}`);
+        }
+        
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = 'market_analysis_export.csv';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Error downloading CSV:', error);
         throw error;
     }
 };

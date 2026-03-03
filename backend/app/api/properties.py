@@ -56,8 +56,25 @@ def get_properties():
 
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
 
+    data = properties_schema.dump(pagination.items)
+
+    # Check optional authentication (RBAC: Guests get limited data)
+    auth_header = request.headers.get('Authorization')
+    is_authenticated = False
+    if auth_header:
+        parts = auth_header.split(" ")
+        if len(parts) > 1:
+            from app.core.auth import decode_token
+            resp = decode_token(parts[1])
+            if not isinstance(resp, str):
+                is_authenticated = True
+    
+    if not is_authenticated:
+        for item in data:
+            item['source_url'] = None  # Hide original listing link from Guests
+
     return jsonify({
-        'data': properties_schema.dump(pagination.items),
+        'data': data,
         'meta': {
             'page': page,
             'per_page': per_page,
@@ -70,7 +87,22 @@ def get_properties():
 @bp.route('/properties/<int:id>', methods=['GET'])
 def get_property(id):
     prop = Property.query.get_or_404(id)
-    return jsonify(property_schema.dump(prop))
+    data = property_schema.dump(prop)
+
+    auth_header = request.headers.get('Authorization')
+    is_authenticated = False
+    if auth_header:
+        parts = auth_header.split(" ")
+        if len(parts) > 1:
+            from app.core.auth import decode_token
+            resp = decode_token(parts[1])
+            if not isinstance(resp, str):
+                is_authenticated = True
+                
+    if not is_authenticated:
+        data['source_url'] = None
+
+    return jsonify(data)
 
 
 @bp.route('/properties/map', methods=['GET'])

@@ -7,8 +7,17 @@ import FilterBar from './components/FilterBar';
 import MapComponent from './components/MapComponent';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
 
-function App() {
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Profile from './pages/Profile';
+import ProtectedRoute from './components/ProtectedRoute';
+
+function MainLayout({ children }: { children?: React.ReactNode }) {
     const { t, i18n } = useTranslation();
+    const { user, logout } = useAuth();
+    const navigate = useNavigate();
     const [properties, setProperties] = useState<Property[]>([]);
     const [meta, setMeta] = useState<PaginationMeta | null>(null);
     const [filters, setFilters] = useState<PropertyFilters>({
@@ -83,32 +92,38 @@ function App() {
         i18n.changeLanguage(newLang);
     };
 
-    const tabs = [
-        { key: 'list' as const, label: t('view_list') },
-        { key: 'map' as const, label: t('view_map') },
-        { key: 'analytics' as const, label: t('view_analytics') },
+    const tabs: { key: 'list' | 'map' | 'analytics', label: string }[] = [
+        { key: 'list', label: t('view_list') || 'List' },
+        { key: 'map', label: t('view_map') || 'Map' },
     ];
+    
+    if (user && (user.role === 'Analyst' || user.role === 'Admin')) {
+        tabs.push({ key: 'analytics', label: t('view_analytics') || 'Analytics' });
+    }
 
     return (
         <div className="min-h-screen bg-background text-text-main">
             {/* Header */}
             <header className="sticky top-0 z-10 bg-surface border-b border-border">
                 <div className="max-w-[1400px] mx-auto px-6 h-16 flex justify-between items-center">
-                    <div className="flex items-center gap-3">
+                    <Link to="/" onClick={() => setViewMode('list')} className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
                             <span className="text-lg">🏠</span>
                         </div>
                         <h1 className="text-lg font-semibold text-text-main tracking-tight">
                             {t('app_title')}
                         </h1>
-                    </div>
+                    </Link>
 
                     <div className="flex items-center gap-6">
                         <nav className="flex gap-1">
                             {tabs.map(tab => (
                                 <button
                                     key={tab.key}
-                                    onClick={() => setViewMode(tab.key)}
+                                    onClick={() => {
+                                        setViewMode(tab.key);
+                                        navigate('/');
+                                    }}
                                     className={`px-4 py-4 text-sm font-medium border-b-2 transition-colors ${
                                         viewMode === tab.key
                                             ? 'border-primary text-primary'
@@ -119,7 +134,31 @@ function App() {
                                 </button>
                             ))}
                         </nav>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-4">
+                            {user ? (
+                                <div className="flex items-center gap-3">
+                                    <Link to="/profile" className="text-sm font-medium text-text-main hidden sm:block hover:underline cursor-pointer">
+                                        {user.email} <span className="text-text-muted text-xs">({user.role})</span>
+                                    </Link>
+                                    <button
+                                        onClick={() => {
+                                            logout();
+                                            window.location.reload();
+                                        }}
+                                        className="text-sm font-medium text-red-500 hover:text-red-600 transition-colors"
+                                    >
+                                        {t('logout', 'Sign Out')}
+                                    </button>
+                                </div>
+                            ) : (
+                                <Link
+                                    to="/login"
+                                    className="text-sm font-medium bg-primary text-white px-4 py-2 rounded-lg shadow-sm hover:bg-primary-hover transition"
+                                >
+                                    {t('login', 'Sign In')}
+                                </Link>
+                            )}
+
                             <button
                                 onClick={() => setDarkMode(!darkMode)}
                                 className="p-2 rounded-full bg-background border border-border text-text-muted hover:text-primary hover:border-primary transition-colors"
@@ -147,9 +186,18 @@ function App() {
             </header>
 
             {/* Main Content */}
-            <main className="max-w-[1400px] mx-auto px-6 py-6">
-                {viewMode === 'analytics' ? (
-                    <AnalyticsDashboard />
+            <main className="max-w-[1400px] mx-auto flex-grow px-6 py-6 w-full flex flex-col">
+                {children ? children : (
+                    <>
+                        {viewMode === 'analytics' ? (
+                    user && (user.role === 'Analyst' || user.role === 'Admin') ? (
+                        <AnalyticsDashboard />
+                    ) : (
+                        <div className="text-center py-20 text-text-muted">
+                            <p className="text-lg font-semibold">{t('access_denied', 'Access denied')}</p>
+                            <p className="text-sm mt-2">{t('analytics_analyst_only', 'Analytics is available for Analyst and Admin roles only.')}</p>
+                        </div>
+                    )
                 ) : viewMode === 'map' ? (
                     <div className="h-[calc(100vh-120px)] w-full rounded-xl overflow-hidden border border-border shadow-card">
                         <MapComponent properties={mapProperties.length > 0 ? mapProperties : properties} />
@@ -229,6 +277,8 @@ function App() {
                         </div>
                     </>
                 )}
+                </>
+                )}
             </main>
 
             {/* Footer */}
@@ -260,6 +310,31 @@ function App() {
                 </div>
             </footer>
         </div>
+    );
+}
+
+function App() {
+    return (
+        <AuthProvider>
+            <Router>
+                <Routes>
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
+                    <Route path="/profile" element={
+                        <ProtectedRoute>
+                            <MainLayout>
+                                <Profile />
+                            </MainLayout>
+                        </ProtectedRoute>
+                    } />
+                    <Route path="/*" element={
+                        <ProtectedRoute>
+                            <MainLayout />
+                        </ProtectedRoute>
+                    } />
+                </Routes>
+            </Router>
+        </AuthProvider>
     );
 }
 
