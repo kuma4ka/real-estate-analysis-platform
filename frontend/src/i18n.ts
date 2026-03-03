@@ -56,7 +56,10 @@ const resources = {
             "analytics_close": "Close",
             "count": "Count",
             "avg_price": "Avg. Price",
-            "logout": "Sign Out",
+            login: 'Sign In',
+            register: 'Register',
+            logout: 'Sign Out',
+            login_to_view_contact: 'Sign in to view contacts',
             "cities": {
                 "Київ": "Kyiv",
                 "Харків": "Kharkiv",
@@ -155,7 +158,10 @@ const resources = {
             "analytics_close": "Закрити",
             "count": "Кількість",
             "avg_price": "Сер. ціна",
+            "login": "Увійти",
+            "register": "Реєстрація",
             "logout": "Вийти",
+            "login_to_view_contact": "Увійдіть, щоб переглянути контакти",
             "cities": {}
         }
     }

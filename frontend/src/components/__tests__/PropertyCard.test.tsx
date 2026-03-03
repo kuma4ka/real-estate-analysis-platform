@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import PropertyCard from '../PropertyCard';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { Property } from '../../types/property';
 
 // Mock react-i18next
@@ -8,6 +8,13 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) => key,
   }),
+}));
+
+// Mock useAuth
+vi.mock('../../context/AuthContext', () => ({
+  useAuth: () => ({
+    user: { id: 1, email: 'test@test.com', role: 'User' }
+  })
 }));
 
 const mockProperty: Property = {
@@ -18,9 +25,10 @@ const mockProperty: Property = {
   address: '123 Test St',
   city: 'Test City',
   district: 'Test District',
-  region: 'Test Region',
+  geocode_precision: 'ROOFTOP',
   area: 45,
   rooms: 2,
+  floor: 3,
   description: 'A test apartment',
   images: ['/test-image.jpg'],
   source_url: 'http://test.com',
