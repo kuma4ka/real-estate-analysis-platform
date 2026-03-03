@@ -87,6 +87,26 @@ const resources = {
             user_role: 'User',
             guest_role: 'Guest',
             error_too_many_requests: 'Too many requests. Please try again later.',
+            
+            login_title: 'Sign In',
+            login_email_label: 'Email',
+            login_password_label: 'Password',
+            login_button: 'Sign In',
+            login_button_loading: 'Signing in...',
+            login_register_prompt: 'Don\'t have an account? Register here',
+            login_failed: 'Login failed',
+            login_failed_server: 'Login failed. Server error.',
+            
+            register_title: 'Create Account',
+            register_email_label: 'Email',
+            register_password_label: 'Password',
+            register_button: 'Register',
+            register_button_loading: 'Creating account...',
+            register_login_prompt: 'Already have an account? Sign in',
+            register_failed: 'Registration failed',
+            register_failed_server: 'Registration failed. Server error.',
+            register_error_password_length: 'Password must be at least 6 characters long',
+            
             "cities": {
                 "Київ": "Kyiv",
                 "Харків": "Kharkiv",
@@ -216,6 +236,26 @@ const resources = {
             user_role: 'Користувач',
             guest_role: 'Гість',
             error_too_many_requests: 'Забагато запитів. Спробуйте пізніше.',
+            
+            login_title: 'Увійти',
+            login_email_label: 'Електронна пошта',
+            login_password_label: 'Пароль',
+            login_button: 'Увійти',
+            login_button_loading: 'Вхід...',
+            login_register_prompt: 'Немає акаунту? Зареєструйтесь тут',
+            login_failed: 'Помилка входу',
+            login_failed_server: 'Помилка входу. Помилка сервера.',
+            
+            register_title: 'Створити акаунт',
+            register_email_label: 'Електронна пошта',
+            register_password_label: 'Пароль',
+            register_button: 'Зареєструватись',
+            register_button_loading: 'Створення акаунту...',
+            register_login_prompt: 'Вже є акаунт? Увійдіть',
+            register_failed: 'Помилка реєстрації',
+            register_failed_server: 'Помилка реєстрації. Помилка сервера.',
+            register_error_password_length: 'Пароль повинен містити не менше 6 символів',
+            
             "cities": {}
         }
     }

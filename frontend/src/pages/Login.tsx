@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../services/api';
 import AuthLayout from '../components/AuthLayout';
+import { useTranslation } from 'react-i18next';
 
 const Login: React.FC = () => {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -27,13 +29,13 @@ const Login: React.FC = () => {
         data = await response.json() as Record<string, unknown>;
       } catch {
         if (response.status === 429) {
-          throw new Error('Too many requests. Please try again later.');
+          throw new Error(t('error_too_many_requests', 'Too many requests. Please try again later.'));
         }
-        throw new Error('Login failed. Server error.');
+        throw new Error(t('login_failed_server', 'Login failed. Server error.'));
       }
 
       if (!response.ok) {
-        let errorMessage = (data.message as string) || 'Login failed';
+        let errorMessage = (data.message as string) || t('login_failed', 'Login failed');
         if (data.errors && typeof data.errors === 'object') {
           errorMessage = Object.values(data.errors).flat().join(', ');
         }
@@ -53,12 +55,12 @@ const Login: React.FC = () => {
   return (
     <AuthLayout>
       <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6 text-center text-gray-900 dark:text-white">Sign In</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center text-gray-900 dark:text-white">{t('login_title', 'Sign In')}</h2>
         {error && <div className="bg-red-100 text-red-700 p-3 rounded mb-4">{error}</div>}
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('login_email_label', 'Email')}</label>
             <input
               type="email"
               required
@@ -68,7 +70,7 @@ const Login: React.FC = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('login_password_label', 'Password')}</label>
             <input
               type="password"
               required
@@ -82,11 +84,11 @@ const Login: React.FC = () => {
             disabled={loading}
             className="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? t('login_button_loading', 'Signing in...') : t('login_button', 'Sign In')}
           </button>
         </form>
         <div className="mt-4 text-center">
-          <a href="/register" className="text-blue-600 hover:underline">Don't have an account? Register here</a>
+          <a href="/register" className="text-blue-600 hover:underline">{t('login_register_prompt', "Don't have an account? Register here")}</a>
         </div>
       </div>
     </AuthLayout>

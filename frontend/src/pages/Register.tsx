@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../services/api';
 import AuthLayout from '../components/AuthLayout';
+import { useTranslation } from 'react-i18next';
 
 const Register: React.FC = () => {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -15,7 +17,7 @@ const Register: React.FC = () => {
     setError('');
     
     if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
+      setError(t('register_error_password_length', 'Password must be at least 6 characters long'));
       return;
     }
 
@@ -33,13 +35,13 @@ const Register: React.FC = () => {
         data = await response.json();
       } catch {
         if (response.status === 429) {
-          throw new Error('Too many requests. Please try again later.');
+          throw new Error(t('error_too_many_requests', 'Too many requests. Please try again later.'));
         }
-        throw new Error('Registration failed. Server error.');
+        throw new Error(t('register_failed_server', 'Registration failed. Server error.'));
       }
 
       if (!response.ok) {
-        let errorMessage = (data.message as string) || 'Registration failed';
+        let errorMessage = (data.message as string) || t('register_failed', 'Registration failed');
         if (data.errors && typeof data.errors === 'object') {
           errorMessage = Object.values(data.errors).flat().join(' ');
         }
@@ -58,12 +60,12 @@ const Register: React.FC = () => {
   return (
     <AuthLayout>
       <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6 text-center text-gray-900 dark:text-white">Create Account</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center text-gray-900 dark:text-white">{t('register_title', 'Create Account')}</h2>
         {error && <div className="bg-red-100 text-red-700 p-3 rounded mb-4">{error}</div>}
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('register_email_label', 'Email')}</label>
             <input
               type="email"
               required
@@ -73,7 +75,7 @@ const Register: React.FC = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('register_password_label', 'Password')}</label>
             <input
               type="password"
               required
@@ -87,11 +89,11 @@ const Register: React.FC = () => {
             disabled={loading}
             className="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
           >
-            {loading ? 'Creating account...' : 'Register'}
+            {loading ? t('register_button_loading', 'Creating account...') : t('register_button', 'Register')}
           </button>
         </form>
         <div className="mt-4 text-center">
-          <a href="/login" className="text-blue-600 hover:underline">Already have an account? Sign in</a>
+          <a href="/login" className="text-blue-600 hover:underline">{t('register_login_prompt', 'Already have an account? Sign in')}</a>
         </div>
       </div>
     </AuthLayout>
