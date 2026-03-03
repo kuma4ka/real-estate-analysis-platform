@@ -17,11 +17,16 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property }) => {
 
     const imageUrl = (property.images && property.images.length > 0) ? property.images[0] : null;
 
+    const CardWrapper: React.ElementType = property.source_url ? 'a' : 'div';
+    const wrapperProps = property.source_url ? {
+        href: property.source_url,
+        target: "_blank",
+        rel: "noopener noreferrer"
+    } : {};
+
     return (
-        <a
-            href={property.source_url}
-            target="_blank"
-            rel="noopener noreferrer"
+        <CardWrapper
+            {...wrapperProps}
             className="bg-surface rounded-xl shadow-card hover:shadow-card-hover transition-all duration-300 overflow-hidden border border-border flex flex-col h-full group"
         >
             {/* Image */}
@@ -65,7 +70,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property }) => {
                     </div>
                 </div>
             </div>
-        </a>
+        </CardWrapper>
     );
 };
 
