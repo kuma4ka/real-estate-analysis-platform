@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import PropertyCard from '../PropertyCard';
 import { describe, expect, it, vi } from 'vitest';
 import type { Property } from '../../types/property';
@@ -39,14 +40,22 @@ const mockProperty: Property = {
 
 describe('PropertyCard', () => {
   it('renders property title and address', () => {
-    render(<PropertyCard property={mockProperty} />);
+    render(
+      <MemoryRouter>
+        <PropertyCard property={mockProperty} />
+      </MemoryRouter>
+    );
     
     expect(screen.getByText('Test Apartment')).toBeInTheDocument();
     expect(screen.getByText('123 Test St')).toBeInTheDocument();
   });
 
   it('renders formatted price', () => {
-    render(<PropertyCard property={mockProperty} />);
+    render(
+      <MemoryRouter>
+        <PropertyCard property={mockProperty} />
+      </MemoryRouter>
+    );
     
     // 50 000 US$ or similar formatting based on locale
     // We can check if the basic number sequence is there
@@ -56,14 +65,22 @@ describe('PropertyCard', () => {
 
   it('renders fallback when no images provided', () => {
     const noImageProperty = { ...mockProperty, images: [] };
-    const { container } = render(<PropertyCard property={noImageProperty} />);
+    const { container } = render(
+      <MemoryRouter>
+        <PropertyCard property={noImageProperty} />
+      </MemoryRouter>
+    );
     
     // Should not render an img tag
     expect(container.querySelector('img')).not.toBeInTheDocument();
   });
 
   it('renders image when provided', () => {
-    render(<PropertyCard property={mockProperty} />);
+    render(
+      <MemoryRouter>
+        <PropertyCard property={mockProperty} />
+      </MemoryRouter>
+    );
     
     const img = screen.getByRole('img');
     expect(img).toHaveAttribute('src', '/test-image.jpg');
@@ -71,7 +88,11 @@ describe('PropertyCard', () => {
   });
 
   it('displays rooms and area', () => {
-    render(<PropertyCard property={mockProperty} />);
+    render(
+      <MemoryRouter>
+        <PropertyCard property={mockProperty} />
+      </MemoryRouter>
+    );
     
     expect(screen.getByText(/2\s*rooms/)).toBeInTheDocument();
     expect(screen.getByText(/45\s*area_unit/)).toBeInTheDocument();
