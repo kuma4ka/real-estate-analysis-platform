@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { fetchWithAuth, API_BASE_URL } from '../services/api';
+import { useTranslation } from 'react-i18next';
 
 interface SystemStats {
   total_users: number;
@@ -9,6 +10,7 @@ interface SystemStats {
 }
 
 const AdminStats: React.FC = () => {
+  const { t } = useTranslation();
   const [stats, setStats] = useState<SystemStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -18,26 +20,26 @@ const AdminStats: React.FC = () => {
       try {
         const response = await fetchWithAuth(`${API_BASE_URL}/admin/system`);
         if (!response.ok) {
-          throw new Error('Failed to fetch system statistics');
+          throw new Error(t('admin_error_fetch_stats', 'Failed to fetch system statistics'));
         }
         const data = await response.json() as SystemStats;
         setStats(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        setError(err instanceof Error ? err.message : t('admin_error_fetch_stats', 'An error occurred'));
       } finally {
         setLoading(false);
       }
     };
 
     loadStats();
-  }, []);
+  }, [t]);
 
   if (loading) {
     return <div className="animate-pulse flex space-x-4 p-4"><div className="h-4 bg-gray-300 rounded w-3/4"></div></div>;
   }
 
   if (error) {
-    return <div className="p-4 bg-red-50 text-red-600 rounded-md">Error loading admin stats: {error}</div>;
+    return <div className="p-4 bg-red-50 text-red-600 rounded-md">{t('admin_error_loading', 'Error loading admin stats:')} {error}</div>;
   }
 
   if (!stats) return null;
@@ -45,27 +47,27 @@ const AdminStats: React.FC = () => {
   return (
     <div className="bg-white dark:bg-gray-800 shadow rounded-lg mb-8 overflow-hidden border border-red-200 dark:border-red-900/30">
       <div className="px-6 py-5 border-b border-gray-200 dark:border-gray-700 bg-red-50 dark:bg-red-900/10 flex justify-between items-center">
-        <h3 className="text-lg font-bold text-red-800 dark:text-red-400">🛡️ Admin Dashboard</h3>
-        <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-red-900 dark:text-red-300">Live</span>
+        <h3 className="text-lg font-bold text-red-800 dark:text-red-400">{t('admin_dashboard_title', '🛡️ Admin Dashboard')}</h3>
+        <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-red-900 dark:text-red-300">{t('admin_live', 'Live')}</span>
       </div>
       <div className="px-6 py-5">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg text-center shadow-sm">
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Total Users</p>
+            <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t('admin_total_users', 'Total Users')}</p>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total_users}</p>
           </div>
           <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg text-center shadow-sm">
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Total Properties</p>
+            <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t('admin_total_properties', 'Total Properties')}</p>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total_properties}</p>
           </div>
           <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg text-center shadow-sm">
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Active Properties</p>
+            <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t('admin_active_properties', 'Active Properties')}</p>
             <p className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.active_properties}</p>
           </div>
         </div>
 
         <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 uppercase tracking-wider">Role Distribution</h4>
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 uppercase tracking-wider">{t('admin_role_distribution', 'Role Distribution')}</h4>
           <div className="flex gap-4 flex-wrap">
             {Object.entries(stats.role_distribution).map(([role, count]) => (
               <div key={role} className="flex items-center gap-2 border border-gray-200 dark:border-gray-600 rounded-full px-4 py-1.5 bg-white dark:bg-gray-800 shadow-sm">
