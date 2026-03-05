@@ -212,6 +212,7 @@ const AnalyticsDashboard: React.FC = () => {
                                 innerRadius={55}
                                 outerRadius={100}
                                 paddingAngle={3}
+                                isAnimationActive={!isExporting}
                                 label={(entry: any) => `${roomLabel(entry.rooms)}R: ${entry.count}`}
                                 onClick={(_data: unknown, index: number) => {
                                     if (groupedRooms[index]?.rooms === 99) setDrilldownOpen(true);
@@ -289,6 +290,7 @@ const AnalyticsDashboard: React.FC = () => {
                                     dataKey={cityMetric}
                                     fill={cityMetric === 'count' ? '#5bc0c4' : cityMetric === 'avg_price' ? '#b4ebca' : '#d9f2b4'}
                                     radius={[0, 4, 4, 0]}
+                                    isAnimationActive={!isExporting}
                                 />
                             </BarChart>
                         </ResponsiveContainer>
@@ -312,6 +314,7 @@ const AnalyticsDashboard: React.FC = () => {
                                     cy="50%"
                                     outerRadius={120}
                                     fill="#8884d8"
+                                    isAnimationActive={!isExporting}
                                     label={(entry: any) => entry.range}
                                 >
                                     {stats?.by_price_ranges?.map((_entry, index) => (
@@ -344,6 +347,7 @@ const AnalyticsDashboard: React.FC = () => {
                                         innerRadius={80}
                                         outerRadius={110}
                                         fill="#82ca9d"
+                                        isAnimationActive={!isExporting}
                                         label={(entry: any) => `${entry.name}: ${entry.value}`}
                                     >
                                         <Cell fill={CHART_COLORS[0]} />
@@ -364,7 +368,7 @@ const AnalyticsDashboard: React.FC = () => {
             </div>
 
             {/* Charts Row 3: Recent Trend (Full width) */}
-            <div className="bg-surface rounded-xl border border-border p-5 shadow-card">
+            <div ref={trendRef} className="bg-surface rounded-xl border border-border p-5 shadow-card">
                 <h3 className="text-sm font-semibold text-text-main mb-4">{t('analytics_trend')}</h3>
                 <ResponsiveContainer width="100%" height={280}>
                     <AreaChart data={stats?.recent_trend}>
@@ -410,8 +414,8 @@ const AnalyticsDashboard: React.FC = () => {
                             }}
                         />
                         <Legend />
-                        <Area yAxisId="left" type="monotone" dataKey="count" stroke="#5bc0c4" fillOpacity={1} fill="url(#colorCount)" name={t('count')} strokeWidth={2} />
-                        <Area yAxisId="right" type="monotone" dataKey="avg_price" stroke="#b4ebca" fill="none" name={t('avg_price')} strokeWidth={2} />
+                        <Area yAxisId="left" type="monotone" dataKey="count" stroke="#5bc0c4" fillOpacity={1} fill="url(#colorCount)" name={t('count')} strokeWidth={2} isAnimationActive={!isExporting} />
+                        <Area yAxisId="right" type="monotone" dataKey="avg_price" stroke="#b4ebca" fill="none" name={t('avg_price')} strokeWidth={2} isAnimationActive={!isExporting} />
                     </AreaChart>
                 </ResponsiveContainer>
             </div>

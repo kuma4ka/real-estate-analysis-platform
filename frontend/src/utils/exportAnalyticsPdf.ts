@@ -134,6 +134,9 @@ export async function exportAnalyticsPdf(
     y = getTableFinalY() + 24;
 
     // ── 2. Chart: By Rooms (Donut) ─────────────────────────────────────────
+    // Wait for charts to settle (React re-render with isAnimationActive=false)
+    await new Promise(resolve => setTimeout(resolve, 400));
+
     if (refs.roomsRef) {
         sectionTitle(t('analytics_by_rooms', 'Distribution by Rooms'));
         const img = await captureElement(refs.roomsRef, isDark);
