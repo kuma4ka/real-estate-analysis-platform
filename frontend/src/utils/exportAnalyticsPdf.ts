@@ -172,7 +172,9 @@ export async function exportAnalyticsPdf(
             t('analytics_city_metric_m2', 'Avg Price/m²'),
         ]],
         body: stats.by_city.map(c => [
-            c.city,
+            // Always use the Latin transliteration — jsPDF's built-in Helvetica
+            // font doesn't support Cyrillic, so we rely on the cities i18n map.
+            t(`cities.${c.city}`, c.city),
             c.count.toLocaleString(),
             `$${c.avg_price.toLocaleString()}`,
             `$${c.avg_price_per_m2?.toLocaleString() ?? '—'}`,

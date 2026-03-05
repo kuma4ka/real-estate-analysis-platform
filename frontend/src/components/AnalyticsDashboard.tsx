@@ -51,8 +51,12 @@ const AnalyticsDashboard: React.FC = () => {
                     priceDistRef: priceDistRef.current,
                     trendRef: trendRef.current,
                 },
-                (key, fallback) => t(key, fallback ?? key),
-                i18n.language
+                // Always use English for jsPDF — built-in Helvetica doesn't support Cyrillic
+                (key, fallback) => {
+                    const tEn = i18n.getFixedT('en');
+                    return tEn(key) as string || fallback || key;
+                },
+                'en'
             );
         } catch (err) {
             const msg = err instanceof Error ? err.message : 'PDF export failed';
