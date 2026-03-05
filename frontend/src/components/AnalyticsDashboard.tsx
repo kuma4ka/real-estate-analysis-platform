@@ -237,7 +237,7 @@ const AnalyticsDashboard: React.FC = () => {
                                 formatter={(value: any, _name: any, props: any) => [
                                     props.payload.rooms === 99
                                         ? `${value} — ${t('analytics_click_details')}`
-                                        : `${value} ${t('rooms')} — ${t('analytics_click_details')}`,
+                                        : `${value} ${t('rooms')}`,
                                     t('count')
                                 ] as [string, string]}
                             />
@@ -307,16 +307,16 @@ const AnalyticsDashboard: React.FC = () => {
                 {/* Price Ranges Distribution */}
                 <div ref={priceDistRef} className="bg-surface p-6 rounded-xl border border-border shadow-sm flex flex-col h-full">
                     <h3 className="text-lg font-semibold text-text-main mb-6">{t('analytics_price_dist')}</h3>
-                    <div className="flex-grow min-h-[300px] flex items-center justify-center">
+                    <div className="flex-grow min-h-[420px] flex items-center justify-center">
                         <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
+                            <PieChart margin={{ top: 20, right: 30, bottom: 20, left: 30 }}>
                                 <Pie
                                     data={stats?.by_price_ranges}
                                     dataKey="count"
                                     nameKey="range"
                                     cx="50%"
                                     cy="50%"
-                                    outerRadius={120}
+                                    outerRadius={95}
                                     fill="#8884d8"
                                     isAnimationActive={!isExporting}
                                     label={(entry: any) => entry.range}
