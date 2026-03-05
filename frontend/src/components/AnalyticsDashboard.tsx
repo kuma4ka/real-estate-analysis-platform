@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -9,6 +9,7 @@ import {
 import { fetchStats, type StatsData } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import useThrottle from '../hooks/useThrottle';
+import { exportAnalyticsPdf } from '../utils/exportAnalyticsPdf';
 
 const CHART_COLORS = ['#5bc0c4', '#b4ebca', '#d9f2b4', '#ffb7c3', '#d3fac7', '#9ed8db', '#a8d5ba', '#ffd4dc'];
 
@@ -20,66 +21,50 @@ const formatPrice = (value: number) => {
 const AnalyticsDashboard: React.FC = () => {
     const { t, i18n } = useTranslation();
     const { user } = useAuth();
-    const dashboardRef = useRef<HTMLDivElement>(null);
+    // Per-chart refs for selective canvas capture
+    const roomsRef    = useRef<HTMLDivElement>(null);
+    const cityRef     = useRef<HTMLDivElement>(null);
+    const priceDistRef = useRef<HTMLDivElement>(null);
+    const trendRef    = useRef<HTMLDivElement>(null);
+
     const [stats, setStats] = useState<StatsData | null>(null);
     const [loading, setLoading] = useState(true);
     const [isExporting, setIsExporting] = useState(false);
     const [exportCooldown, setExportCooldown] = useState(false);
+    const [exportError, setExportError] = useState<string | null>(null);
     const [drilldownOpen, setDrilldownOpen] = useState(false);
     const [cityMetric, setCityMetric] = useState<'count' | 'avg_price' | 'avg_price_per_m2'>('count');
 
     const canExport = user?.role === 'Analyst' || user?.role === 'Admin';
 
-    const exportPdfCore = useCallback(async () => {
-        if (!dashboardRef.current || isExporting || exportCooldown) return;
-
+    const exportPdfCore = async () => {
+        if (isExporting || exportCooldown) return;
         setIsExporting(true);
+        setExportError(null);
         try {
-            const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
-                import('html2canvas'),
-                import('jspdf'),
-            ]);
-
-            const canvas = await html2canvas(dashboardRef.current, {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: document.documentElement.classList.contains('dark') ? '#0f1117' : '#ffffff',
-                logging: false,
-            });
-
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF({
-                orientation: 'portrait',
-                unit: 'px',
-                format: 'a4',
-            });
-
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
-            const imgWidth = canvas.width;
-            const imgHeight = canvas.height;
-            const ratio = pdfWidth / imgWidth;
-            const scaledHeight = imgHeight * ratio;
-
-            // Multi-page support: split canvas across pages if taller than one page
-            let yOffset = 0;
-            while (yOffset < scaledHeight) {
-                if (yOffset > 0) pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 0, -yOffset, pdfWidth, scaledHeight);
-                yOffset += pdfHeight;
-            }
-
-            const date = new Date().toISOString().slice(0, 10);
-            pdf.save(`analytics-${date}.pdf`);
+            if (!stats) throw new Error('No data loaded');
+            await exportAnalyticsPdf(
+                stats,
+                {
+                    roomsRef: roomsRef.current,
+                    cityRef: cityRef.current,
+                    priceDistRef: priceDistRef.current,
+                    trendRef: trendRef.current,
+                },
+                (key, fallback) => t(key, fallback ?? key),
+                i18n.language
+            );
         } catch (err) {
-            console.error('PDF export failed:', err);
+            const msg = err instanceof Error ? err.message : 'PDF export failed';
+            setExportError(msg);
+            // Auto-dismiss error after 4 seconds
+            setTimeout(() => setExportError(null), 4_000);
         } finally {
             setIsExporting(false);
-            // 10 second cooldown after export
             setExportCooldown(true);
             setTimeout(() => setExportCooldown(false), 10_000);
         }
-    }, [isExporting, exportCooldown]);
+    };
 
     const handleExportPdf = useThrottle(exportPdfCore, 10_000);
 
@@ -144,7 +129,7 @@ const AnalyticsDashboard: React.FC = () => {
     const roomLabel = (rooms: number) => rooms === 99 ? '4+' : String(rooms);
 
     return (
-        <div className="space-y-6" ref={dashboardRef}>
+        <div className="space-y-6">
             {/* Page Title + Export Button */}
             <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-text-main">
@@ -186,6 +171,21 @@ const AnalyticsDashboard: React.FC = () => {
                 )}
             </div>
 
+            {/* Error Toast */}
+            {exportError && (
+                <div className="flex items-center gap-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-lg px-4 py-3 text-sm">
+                    <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                    </svg>
+                    <span className="flex-1">{exportError}</span>
+                    <button onClick={() => setExportError(null)} className="hover:opacity-70 transition-opacity">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            )}
+
             {/* Summary Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {summaryCards.map((card, i) => (
@@ -199,7 +199,7 @@ const AnalyticsDashboard: React.FC = () => {
             {/* Charts Row 1: Donut + City Bar */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                 {/* By Rooms — Donut */}
-                <div className="bg-surface rounded-xl border border-border p-5 shadow-card">
+                <div ref={roomsRef} className="bg-surface rounded-xl border border-border p-5 shadow-card">
                     <h3 className="text-sm font-semibold text-text-main mb-4">{t('analytics_by_rooms')}</h3>
                     <ResponsiveContainer width="100%" height={280}>
                         <PieChart>
@@ -241,7 +241,7 @@ const AnalyticsDashboard: React.FC = () => {
                 </div>
 
                 {/* Avg Price by City Chart */}
-                <div className="bg-surface p-6 rounded-xl border border-border flex flex-col h-full">
+                <div ref={cityRef} className="bg-surface p-6 rounded-xl border border-border flex flex-col h-full">
                     <div className="flex justify-between items-center mb-6">
                         <h3 className="text-lg font-semibold text-text-main">{t('analytics_city_metrics')}</h3>
                         <select
@@ -299,7 +299,7 @@ const AnalyticsDashboard: React.FC = () => {
             {/* Charts Row 2: Price Distribution + Status */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                 {/* Price Ranges Distribution */}
-                <div className="bg-surface p-6 rounded-xl border border-border shadow-sm flex flex-col h-full">
+                <div ref={priceDistRef} className="bg-surface p-6 rounded-xl border border-border shadow-sm flex flex-col h-full">
                     <h3 className="text-lg font-semibold text-text-main mb-6">{t('analytics_price_dist')}</h3>
                     <div className="flex-grow min-h-[300px] flex items-center justify-center">
                         <ResponsiveContainer width="100%" height="100%">
