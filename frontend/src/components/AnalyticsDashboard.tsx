@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -7,6 +7,8 @@ import {
     CartesianGrid, Legend
 } from 'recharts';
 import { fetchStats, type StatsData } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import useThrottle from '../hooks/useThrottle';
 
 const CHART_COLORS = ['#5bc0c4', '#b4ebca', '#d9f2b4', '#ffb7c3', '#d3fac7', '#9ed8db', '#a8d5ba', '#ffd4dc'];
 
@@ -17,10 +19,69 @@ const formatPrice = (value: number) => {
 
 const AnalyticsDashboard: React.FC = () => {
     const { t, i18n } = useTranslation();
+    const { user } = useAuth();
+    const dashboardRef = useRef<HTMLDivElement>(null);
     const [stats, setStats] = useState<StatsData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isExporting, setIsExporting] = useState(false);
+    const [exportCooldown, setExportCooldown] = useState(false);
     const [drilldownOpen, setDrilldownOpen] = useState(false);
     const [cityMetric, setCityMetric] = useState<'count' | 'avg_price' | 'avg_price_per_m2'>('count');
+
+    const canExport = user?.role === 'Analyst' || user?.role === 'Admin';
+
+    const exportPdfCore = useCallback(async () => {
+        if (!dashboardRef.current || isExporting || exportCooldown) return;
+
+        setIsExporting(true);
+        try {
+            const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+                import('html2canvas'),
+                import('jspdf'),
+            ]);
+
+            const canvas = await html2canvas(dashboardRef.current, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: document.documentElement.classList.contains('dark') ? '#0f1117' : '#ffffff',
+                logging: false,
+            });
+
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'px',
+                format: 'a4',
+            });
+
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            const imgWidth = canvas.width;
+            const imgHeight = canvas.height;
+            const ratio = pdfWidth / imgWidth;
+            const scaledHeight = imgHeight * ratio;
+
+            // Multi-page support: split canvas across pages if taller than one page
+            let yOffset = 0;
+            while (yOffset < scaledHeight) {
+                if (yOffset > 0) pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, -yOffset, pdfWidth, scaledHeight);
+                yOffset += pdfHeight;
+            }
+
+            const date = new Date().toISOString().slice(0, 10);
+            pdf.save(`analytics-${date}.pdf`);
+        } catch (err) {
+            console.error('PDF export failed:', err);
+        } finally {
+            setIsExporting(false);
+            // 10 second cooldown after export
+            setExportCooldown(true);
+            setTimeout(() => setExportCooldown(false), 10_000);
+        }
+    }, [isExporting, exportCooldown]);
+
+    const handleExportPdf = useThrottle(exportPdfCore, 10_000);
 
     // Translate city name from Ukrainian DB value to active locale
     const translateCity = (name: string): string => {
@@ -83,11 +144,47 @@ const AnalyticsDashboard: React.FC = () => {
     const roomLabel = (rooms: number) => rooms === 99 ? '4+' : String(rooms);
 
     return (
-        <div className="space-y-6">
-            {/* Page Title */}
-            <h2 className="text-2xl font-bold text-text-main">
-                {t('view_analytics')}
-            </h2>
+        <div className="space-y-6" ref={dashboardRef}>
+            {/* Page Title + Export Button */}
+            <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-text-main">
+                    {t('view_analytics')}
+                </h2>
+                {canExport && (
+                    <button
+                        onClick={handleExportPdf}
+                        disabled={isExporting || exportCooldown}
+                        className="
+                            flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+                            bg-primary text-white
+                            hover:bg-primary-hover
+                            disabled:opacity-50 disabled:cursor-not-allowed
+                            transition-all duration-200
+                        "
+                        title={exportCooldown ? t('analytics_export_cooldown', 'Please wait before re-exporting') : undefined}
+                    >
+                        {isExporting ? (
+                            <>
+                                <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                </svg>
+                                {t('analytics_export_loading', 'Generating PDF...')}
+                            </>
+                        ) : (
+                            <>
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                                {exportCooldown
+                                    ? t('analytics_export_cooldown', 'Please wait...')
+                                    : t('analytics_export_pdf', 'Download PDF')
+                                }
+                            </>
+                        )}
+                    </button>
+                )}
+            </div>
 
             {/* Summary Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

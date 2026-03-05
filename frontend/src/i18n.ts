@@ -107,6 +107,10 @@ const resources = {
             register_failed_server: 'Registration failed. Server error.',
             register_error_password_length: 'Password must be at least 6 characters long',
             
+            analytics_export_pdf: 'Download PDF',
+            analytics_export_loading: 'Generating PDF...',
+            analytics_export_cooldown: 'Please wait...',
+            
             "cities": {
                 "Київ": "Kyiv",
                 "Харків": "Kharkiv",
@@ -255,6 +259,10 @@ const resources = {
             register_failed: 'Помилка реєстрації',
             register_failed_server: 'Помилка реєстрації. Помилка сервера.',
             register_error_password_length: 'Пароль повинен містити не менше 6 символів',
+            
+            analytics_export_pdf: 'Завантажити PDF',
+            analytics_export_loading: 'Генерація PDF...',
+            analytics_export_cooldown: 'Зачекайте...',
             
             "cities": {}
         }
