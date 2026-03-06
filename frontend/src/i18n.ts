@@ -110,6 +110,14 @@ const resources = {
             analytics_export_pdf: 'Download PDF',
             analytics_export_loading: 'Generating PDF...',
             analytics_export_cooldown: 'Please wait...',
+
+            analytics_forecast_title: 'Price Forecast — next 30 days',
+            analytics_forecast_subtitle: 'Linear regression on historical daily avg prices',
+            analytics_forecast_trend: 'Trend/day',
+            analytics_forecast_predicted: 'Forecast (±1σ)',
+            analytics_forecast_today: 'Today',
+            analytics_forecast_unavailable: 'Forecast data unavailable',
+            analytics_forecast_disclaimer: 'Forecast is a linear extrapolation only. Do not use for financial decisions.',
             
             "cities": {
                 "Київ": "Kyiv",
@@ -263,6 +271,14 @@ const resources = {
             analytics_export_pdf: 'Завантажити PDF',
             analytics_export_loading: 'Генерація PDF...',
             analytics_export_cooldown: 'Зачекайте...',
+
+            analytics_forecast_title: 'Прогноз цін — наступні 30 днів',
+            analytics_forecast_subtitle: 'Лінійна регресія на основі щоденних середніх цін',
+            analytics_forecast_trend: 'Тренд/день',
+            analytics_forecast_predicted: 'Прогноз (±1σ)',
+            analytics_forecast_today: 'Сьогодні',
+            analytics_forecast_unavailable: 'Дані прогнозу недоступні',
+            analytics_forecast_disclaimer: 'Прогноз є лише лінійною екстраполяцією. Не використовуйте для фінансових рішень.',
             
             "cities": {}
         }
