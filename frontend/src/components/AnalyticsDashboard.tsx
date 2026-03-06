@@ -4,8 +4,17 @@ import {
     BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
     PieChart, Pie, Cell,
     AreaChart, Area,
-    CartesianGrid, Legend
+    CartesianGrid, Legend,
+    type PieLabelRenderProps,
 } from 'recharts';
+import type { ValueType, NameType, Payload } from 'recharts/types/component/DefaultTooltipContent';
+
+// Typed shapes used in Recharts label/formatter callbacks.
+// Pie label receives PieLabelRenderProps & the data item merged in at runtime.
+type RoomLabelProps      = PieLabelRenderProps & { rooms: number; count: number };
+type PriceRangeLabelProps = PieLabelRenderProps & { range: string };
+type ActiveLabelProps    = PieLabelRenderProps & { name: string; value: number };
+interface TrendPayload { price_change_pct?: number | null }
 import { fetchStats, type StatsData } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import useThrottle from '../hooks/useThrottle';
@@ -218,7 +227,7 @@ const AnalyticsDashboard: React.FC = () => {
                                 outerRadius={100}
                                 paddingAngle={3}
                                 isAnimationActive={!isExporting}
-                                label={(entry: any) => `${roomLabel(entry.rooms)}R: ${entry.count}`}
+                                label={((entry: RoomLabelProps) => `${roomLabel(entry.rooms)}R: ${entry.count}`) as unknown as PieLabelRenderProps}
                                 onClick={(_data: unknown, index: number) => {
                                     if (groupedRooms[index]?.rooms === 99) setDrilldownOpen(true);
                                 }}
@@ -235,8 +244,9 @@ const AnalyticsDashboard: React.FC = () => {
                                 contentStyle={{ background: 'var(--tooltip-bg)', border: '1px solid var(--tooltip-border)', borderRadius: '10px', fontSize: 13 }}
                                 itemStyle={{ color: 'var(--chart-text-bold)' }}
                                 labelStyle={{ color: 'var(--chart-text-bold)' }}
-                                formatter={(value: any, _name: any, props: any) => [
-                                    props.payload.rooms === 99
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                formatter={(value: any, _name: any, props: Payload<ValueType, NameType>) => [
+                                    (props.payload as RoomEntry)?.rooms === 99
                                         ? `${value} — ${t('analytics_click_details')}`
                                         : `${value} ${t('rooms')}`,
                                     t('count')
@@ -285,7 +295,8 @@ const AnalyticsDashboard: React.FC = () => {
                                     tick={{ fill: 'var(--chart-text)', fontSize: 12 }}
                                 />
                                 <Tooltip
-                                    formatter={(value: any) => {
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                formatter={(value: any) => {
                                         if (cityMetric === 'count') return [value, t('analytics_city_metric_count')];
                                         if (cityMetric === 'avg_price_per_m2') return [`$${value}/m²`, t('analytics_city_metric_m2')];
                                         return [formatPrice(value as number), t('analytics_city_metric_price')];
@@ -320,7 +331,7 @@ const AnalyticsDashboard: React.FC = () => {
                                     outerRadius={95}
                                     fill="#8884d8"
                                     isAnimationActive={!isExporting}
-                                    label={(entry: any) => entry.range}
+                                    label={((entry: PriceRangeLabelProps) => entry.range) as unknown as PieLabelRenderProps}
                                 >
                                     {stats?.by_price_ranges?.map((_entry, index) => (
                                         <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
@@ -353,7 +364,7 @@ const AnalyticsDashboard: React.FC = () => {
                                         outerRadius={110}
                                         fill="#82ca9d"
                                         isAnimationActive={!isExporting}
-                                        label={(entry: any) => `${entry.name}: ${entry.value}`}
+                                        label={((entry: ActiveLabelProps) => `${entry.name ?? ''}: ${entry.value ?? ''}`) as unknown as PieLabelRenderProps}
                                     >
                                         <Cell fill={CHART_COLORS[0]} />
                                     </Pie>
@@ -408,10 +419,13 @@ const AnalyticsDashboard: React.FC = () => {
                                 const d = new Date(String(val));
                                 return `${d.toLocaleString('default', { month: 'long' })} ${d.getFullYear()}`;
                             }}
-                            formatter={(value: any, _name: any, props: any) => {
-                                const isPrice = props.dataKey === 'avg_price';
-                                if (isPrice && props.payload.price_change_pct !== null) {
-                                    const pctC = props.payload.price_change_pct as number;
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            formatter={(value: any, _name: any, props: Payload<ValueType, NameType>) => {
+                                const dataKey = (props as { dataKey?: string }).dataKey;
+                                const payload = (props.payload ?? {}) as TrendPayload;
+                                const isPrice = dataKey === 'avg_price';
+                                if (isPrice && payload.price_change_pct != null) {
+                                    const pctC = payload.price_change_pct;
                                     const sign = pctC > 0 ? '+' : '';
                                     return [`${formatPrice(value as number)} (${sign}${pctC.toFixed(1)}%)`, t('analytics_avg_price_label')];
                                 }
