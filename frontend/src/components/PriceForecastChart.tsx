@@ -26,11 +26,11 @@ const formatPrice = (v: number) => {
     return `$${v}`;
 };
 
-// Quality description for the R² badge
-const rSquaredLabel = (r2: number): { label: string; color: string } => {
-    if (r2 >= 0.8) return { label: 'Strong fit', color: 'text-emerald-400' };
-    if (r2 >= 0.5) return { label: 'Moderate fit', color: 'text-yellow-400' };
-    return { label: 'Weak fit', color: 'text-red-400' };
+// Quality description for the R² badge — labels are looked up via i18n
+const rSquaredLabel = (r2: number, t: (key: string) => string): { label: string; color: string } => {
+    if (r2 >= 0.8) return { label: t('analytics_forecast_fit_strong'), color: 'text-emerald-400' };
+    if (r2 >= 0.5) return { label: t('analytics_forecast_fit_moderate'), color: 'text-yellow-400' };
+    return { label: t('analytics_forecast_fit_weak'), color: 'text-red-400' };
 };
 
 const PriceForecastChart: React.FC<Props> = ({ recentTrend }) => {
@@ -116,7 +116,7 @@ const PriceForecastChart: React.FC<Props> = ({ recentTrend }) => {
     const todayIndex = historical.length - 1;
     const todayDate = historical[todayIndex]?.date;
 
-    const { label: fitLabel, color: fitColor } = rSquaredLabel(forecast.r_squared);
+    const { label: fitLabel, color: fitColor } = rSquaredLabel(forecast.r_squared, t);
     const trend = forecast.slope_per_day >= 0 ? '↑' : '↓';
     const trendColor = forecast.slope_per_day >= 0 ? 'text-emerald-400' : 'text-red-400';
 

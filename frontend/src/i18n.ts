@@ -118,6 +118,9 @@ const resources = {
             analytics_forecast_today: 'Today',
             analytics_forecast_unavailable: 'Forecast data unavailable',
             analytics_forecast_disclaimer: 'Forecast is a linear extrapolation only. Do not use for financial decisions.',
+            analytics_forecast_fit_strong: 'Strong fit',
+            analytics_forecast_fit_moderate: 'Moderate fit',
+            analytics_forecast_fit_weak: 'Weak fit',
             
             "cities": {
                 "Київ": "Kyiv",
@@ -279,6 +282,9 @@ const resources = {
             analytics_forecast_today: 'Сьогодні',
             analytics_forecast_unavailable: 'Дані прогнозу недоступні',
             analytics_forecast_disclaimer: 'Прогноз є лише лінійною екстраполяцією. Не використовуйте для фінансових рішень.',
+            analytics_forecast_fit_strong: 'Висока точність',
+            analytics_forecast_fit_moderate: 'Помірна точність',
+            analytics_forecast_fit_weak: 'Низька точність',
             
             "cities": {}
         }
