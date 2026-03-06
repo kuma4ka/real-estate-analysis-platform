@@ -78,6 +78,32 @@ export const fetchStats = async (): Promise<StatsData> => {
     }
 };
 
+export interface ForecastPoint {
+    date: string;
+    predicted_price: number;
+    lower: number;
+    upper: number;
+}
+
+export interface ForecastData {
+    r_squared: number;
+    slope_per_day: number;
+    forecast: ForecastPoint[];
+}
+
+export const fetchForecast = async (): Promise<ForecastData> => {
+    try {
+        const response = await fetchWithAuth(`${API_BASE_URL}/stats/forecast`);
+        if (!response.ok) {
+            throw new Error(`API Error: ${response.statusText}`);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching forecast:', error);
+        throw error;
+    }
+};
+
 export const downloadStatsCsv = async (): Promise<void> => {
     try {
         const response = await fetchWithAuth(`${API_BASE_URL}/stats/export`);
