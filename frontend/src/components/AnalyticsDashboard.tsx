@@ -10,6 +10,7 @@ import { fetchStats, type StatsData } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import useThrottle from '../hooks/useThrottle';
 import { exportAnalyticsPdf } from '../utils/exportAnalyticsPdf';
+import PriceForecastChart from './PriceForecastChart';
 
 const CHART_COLORS = ['#5bc0c4', '#b4ebca', '#d9f2b4', '#ffb7c3', '#d3fac7', '#9ed8db', '#a8d5ba', '#ffd4dc'];
 
@@ -423,6 +424,9 @@ const AnalyticsDashboard: React.FC = () => {
                     </AreaChart>
                 </ResponsiveContainer>
             </div>
+
+            {/* Price Forecast — full width */}
+            <PriceForecastChart recentTrend={stats.recent_trend} />
 
             {/* 4+ Drilldown Modal */}
             {drilldownOpen && (

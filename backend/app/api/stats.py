@@ -3,6 +3,7 @@ from sqlalchemy import func, case
 from app.models import Property
 from app.api import bp
 from app.core.auth import require_role
+import datetime
 
 
 @bp.route('/stats', methods=['GET'])
@@ -112,4 +113,79 @@ def get_stats():
         ],
         'by_price_ranges': price_histogram,
         'recent_trend': recent_trend,
+    })
+
+
+@bp.route('/stats/forecast', methods=['GET'])
+@require_role('Analyst')
+def get_price_forecast():
+    """
+    Linear-regression price forecast for the next 30 days.
+    Uses ALL historical daily avg-price rows so the trend is accurate.
+    Returns:
+      r_squared      – goodness of fit (0–1)
+      slope_per_day  – $ change per calendar day
+      forecast       – [{date, predicted_price, lower, upper}]  (30 days)
+    """
+    try:
+        import numpy as np
+    except ImportError:
+        return jsonify({'error': 'numpy not available on this server'}), 500
+
+    rows = Property.query.with_entities(
+        func.date(Property.created_at).label('date'),
+        func.avg(Property.price).label('avg_price'),
+    ).filter(
+        Property.price.isnot(None),
+        Property.created_at.isnot(None),
+    ).group_by(func.date(Property.created_at)).order_by(
+        func.date(Property.created_at)
+    ).all()
+
+    if len(rows) < 3:
+        return jsonify({'error': 'Not enough historical data for a forecast (need ≥ 3 days)'}), 422
+
+    # Convert dates to integer offsets (day 0 = first data point)
+    def to_date(val):
+        if isinstance(val, datetime.date):
+            return val
+        if hasattr(val, 'date'):
+            return val.date()
+        return datetime.date.fromisoformat(str(val))
+
+    base_date = to_date(rows[0][0])
+    xs = np.array([(to_date(r[0]) - base_date).days for r in rows], dtype=float)
+    ys = np.array([float(r[1] or 0) for r in rows], dtype=float)
+
+    # Least-squares linear fit
+    coeffs = np.polyfit(xs, ys, 1)
+    slope = float(coeffs[0])
+
+    predicted_hist = np.polyval(coeffs, xs)
+    residuals = ys - predicted_hist
+    ss_res = float(np.sum(residuals ** 2))
+    ss_tot = float(np.sum((ys - ys.mean()) ** 2))
+    r_squared = round(1 - ss_res / ss_tot, 4) if ss_tot > 0 else 0.0
+    sigma = float(np.std(residuals))
+
+    # Forecast: next 30 days after the last data point
+    last_x = int(xs[-1])
+    last_date = to_date(rows[-1][0])
+
+    forecast = []
+    for i in range(1, 31):
+        future_x = last_x + i
+        future_date = last_date + datetime.timedelta(days=i)
+        price = float(np.polyval(coeffs, future_x))
+        forecast.append({
+            'date': future_date.isoformat(),
+            'predicted_price': round(price, 0),
+            'lower': round(max(0.0, price - sigma), 0),
+            'upper': round(price + sigma, 0),
+        })
+
+    return jsonify({
+        'r_squared': r_squared,
+        'slope_per_day': round(slope, 2),
+        'forecast': forecast,
     })
