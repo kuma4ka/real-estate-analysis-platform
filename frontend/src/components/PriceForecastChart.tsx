@@ -27,7 +27,11 @@ const rSquaredLabel = (r2: number, t: (key: string) => string): { label: string;
     return { label: t('analytics_forecast_fit_weak'), color: 'text-red-400' };
 };
 
-const PriceForecastChart: React.FC = () => {
+interface Props {
+    isExporting?: boolean;
+}
+
+const PriceForecastChart: React.FC<Props> = ({ isExporting = false }) => {
     const { t } = useTranslation();
     const [forecast, setForecast] = useState<ForecastData | null>(null);
     const [loading, setLoading] = useState(true);
@@ -237,6 +241,7 @@ const PriceForecastChart: React.FC = () => {
                         name="band_lower"
                         dot={false}
                         activeDot={false}
+                        isAnimationActive={!isExporting}
                     />
                     <Area
                         type="monotone"
@@ -248,6 +253,7 @@ const PriceForecastChart: React.FC = () => {
                         name="band_upper"
                         dot={false}
                         activeDot={false}
+                        isAnimationActive={!isExporting}
                         // Stack above lower to create the band
                         baseValue="dataMin"
                     />
@@ -262,6 +268,7 @@ const PriceForecastChart: React.FC = () => {
                         activeDot={{ r: 4 }}
                         name="actual"
                         connectNulls
+                        isAnimationActive={!isExporting}
                     />
 
                     {/* Forecast dashed line */}
@@ -275,6 +282,7 @@ const PriceForecastChart: React.FC = () => {
                         activeDot={{ r: 4 }}
                         name="predicted"
                         connectNulls
+                        isAnimationActive={!isExporting}
                     />
 
                     {/* "Today" divider */}
