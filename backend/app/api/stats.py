@@ -205,17 +205,23 @@ def get_price_forecast():
     # Forecast: next 30 days after the last data point
     last_x = int(xs[-1])
     last_date = to_date(rows[-1][0])
+    
+    # Real estate prices cannot realistically drop to $0. 
+    # We establish a maximum naive drop constraint: 50% of the last known price.
+    last_actual_price = float(ys[-1]) if len(ys) > 0 else 0.0
+    price_floor = max(0.0, last_actual_price * 0.5)
 
     forecast = []
     for i in range(1, 31):
         future_x = last_x + i
         future_date = last_date + datetime.timedelta(days=i)
-        price = float(np.polyval(coeffs, future_x))
-        clamped_price = max(0.0, price)
+        raw_price = float(np.polyval(coeffs, future_x))
+        clamped_price = max(price_floor, raw_price)
+        
         forecast.append({
             'date': future_date.isoformat(),
             'predicted_price': round(clamped_price, 0),
-            'lower': round(max(0.0, price - sigma), 0),
+            'lower': round(max(price_floor * 0.8, clamped_price - sigma), 0),
             'upper': round(clamped_price + sigma, 0),
         })
 
