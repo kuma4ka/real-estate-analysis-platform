@@ -101,11 +101,11 @@ export interface ForecastData {
 
 export const fetchForecast = async (city?: string): Promise<ForecastData> => {
     try {
-        const url = new URL(`${API_BASE_URL}/stats/forecast`);
+        let urlStr = `${API_BASE_URL}/stats/forecast`;
         if (city) {
-            url.searchParams.append('city', city);
+            urlStr += `?${new URLSearchParams({ city }).toString()}`;
         }
-        const response = await fetchWithAuth(url.toString());
+        const response = await fetchWithAuth(urlStr);
         if (!response.ok) {
             throw new Error(`API Error: ${response.statusText}`);
         }
