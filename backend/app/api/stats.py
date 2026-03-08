@@ -4,11 +4,11 @@ from app.models import Property
 from app.api import bp
 from app.core.auth import require_role
 import datetime
+from cachetools import cached, TTLCache
 
 
-@bp.route('/stats', methods=['GET'])
-@require_role('Analyst')
-def get_stats():
+@cached(cache=TTLCache(maxsize=4, ttl=600))
+def _compute_stats():
     base_query = Property.query.filter(Property.is_active)
     total = base_query.count()
 
@@ -93,7 +93,7 @@ def get_stats():
             'price_change_pct': price_change_pct,
         })
 
-    return jsonify({
+    return {
         'total_active': total,
         'avg_price': round(avg_price_raw, 0),
         'avg_area': round(avg_area, 1),
@@ -113,33 +113,20 @@ def get_stats():
         ],
         'by_price_ranges': price_histogram,
         'recent_trend': recent_trend,
-    })
+    }
 
-
-@bp.route('/stats/forecast', methods=['GET'])
+@bp.route('/stats', methods=['GET'])
 @require_role('Analyst')
-def get_price_forecast():
-    """
-    Linear-regression price forecast for the next 30 days.
+def get_stats():
+    return jsonify(_compute_stats())
 
-    Query params:
-      city (optional) – filter to a specific city; omit for global data.
 
-    Returns:
-      city           – the city filtered on, or null for global
-      r_squared      – goodness of fit (0–1)
-      slope_per_day  – $ change per calendar day
-      forecast       – [{date, predicted_price, lower, upper}]  (30 days)
-      available_cities – distinct cities available for filtering
-    """
-    from flask import request as flask_request
-
+@cached(cache=TTLCache(maxsize=32, ttl=600))
+def _compute_price_forecast(city_filter):
     try:
         import numpy as np
     except ImportError:
-        return jsonify({'error': 'numpy not available on this server'}), 500
-
-    city_filter = flask_request.args.get('city', '').strip() or None
+        return {'error_override': True, 'msg': 'numpy not available on this server', 'status': 500}
 
     # Build the historical rows query, optionally filtered by city
     base = Property.query.with_entities(
@@ -169,7 +156,7 @@ def get_price_forecast():
     available_cities = [r[0] for r in city_rows]
 
     if len(rows) < 3:
-        return jsonify({
+        return {
             'city': city_filter,
             'available_cities': available_cities,
             'r_squared': 0.0,
@@ -177,7 +164,7 @@ def get_price_forecast():
             'historical': [],
             'forecast': [],
             'error': 'Not enough historical data for a forecast (need \u2265 3 days)',
-        }), 200
+        }
 
     # Convert dates to integer offsets (day 0 = first data point)
     def to_date(val):
@@ -232,12 +219,31 @@ def get_price_forecast():
             'avg_price': round(float(r[1] or 0), 0)
         })
 
-    return jsonify({
+    return {
         'city': city_filter,
         'available_cities': available_cities,
         'r_squared': r_squared,
         'slope_per_day': round(slope, 2),
         'historical': historical,
         'forecast': forecast,
-    })
+    }
+
+@bp.route('/stats/forecast', methods=['GET'])
+@require_role('Analyst')
+def get_price_forecast():
+    """
+    Linear-regression price forecast for the next 30 days.
+
+    Query params:
+      city (optional) – filter to a specific city; omit for global data.
+    """
+    from flask import request as flask_request
+    
+    city_filter = flask_request.args.get('city', '').strip() or None
+    
+    res = _compute_price_forecast(city_filter)
+    if res.get('error_override'):
+        return jsonify({'error': res['msg']}), res['status']
+        
+    return jsonify(res)
 
