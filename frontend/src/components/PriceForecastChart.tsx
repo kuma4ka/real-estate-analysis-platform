@@ -12,13 +12,7 @@ import {
     ResponsiveContainer,
     ReferenceLine,
 } from 'recharts';
-import { fetchForecast, type ForecastData, type ForecastPoint } from '../services/api';
-import type { StatsData } from '../services/api';
-
-interface Props {
-    /** Actual historical trend from the stats payload (used as the left axis anchor) */
-    recentTrend: StatsData['recent_trend'];
-}
+import { fetchForecast, type ForecastData, type ForecastPoint, type ForecastHistoricalPoint } from '../services/api';
 
 const formatPrice = (v: number) => {
     if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
@@ -33,22 +27,32 @@ const rSquaredLabel = (r2: number, t: (key: string) => string): { label: string;
     return { label: t('analytics_forecast_fit_weak'), color: 'text-red-400' };
 };
 
-const PriceForecastChart: React.FC<Props> = ({ recentTrend }) => {
+const PriceForecastChart: React.FC = () => {
     const { t } = useTranslation();
     const [forecast, setForecast] = useState<ForecastData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [selectedCity, setSelectedCity] = useState<string>('');
 
     useEffect(() => {
-        fetchForecast()
-            .then(setForecast)
-            .catch((err: unknown) =>
-                setError(err instanceof Error ? err.message : 'Forecast unavailable')
-            )
-            .finally(() => setLoading(false));
-    }, []);
+        let cancelled = false;
+        const load = async () => {
+            setLoading(true);
+            setError(null);
+            try {
+                const data = await fetchForecast(selectedCity || undefined);
+                if (!cancelled) setForecast(data);
+            } catch (err: unknown) {
+                if (!cancelled) setError(err instanceof Error ? err.message : 'Forecast unavailable');
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        };
+        void load();
+        return () => { cancelled = true; };
+    }, [selectedCity]);
 
-    if (loading) {
+    if (!forecast && loading) {
         return (
             <div className="bg-surface rounded-xl border border-border p-5 shadow-card animate-pulse">
                 <div className="h-4 bg-border rounded w-48 mb-4" />
@@ -82,8 +86,8 @@ const PriceForecastChart: React.FC<Props> = ({ recentTrend }) => {
         isForecast?: boolean;
     };
 
-    const historical: ChartPoint[] = recentTrend.map(r => ({
-        date: r.month,
+    const historical: ChartPoint[] = forecast.historical.map((r: ForecastHistoricalPoint) => ({
+        date: r.date,
         actual: r.avg_price,
     }));
 
@@ -123,14 +127,25 @@ const PriceForecastChart: React.FC<Props> = ({ recentTrend }) => {
     return (
         <div className="bg-surface rounded-xl border border-border p-5 shadow-card">
             {/* Header */}
-            <div className="flex items-start justify-between mb-4 flex-wrap gap-2">
+            <div className="flex items-start justify-between mb-4 flex-wrap gap-4">
                 <div>
-                    <h3 className="text-sm font-semibold text-text-main">
+                    <h3 className="text-sm font-semibold text-text-main pb-1">
                         {t('analytics_forecast_title', 'Price Forecast — next 30 days')}
                     </h3>
-                    <p className="text-xs text-text-muted mt-0.5">
-                        {t('analytics_forecast_subtitle', 'Linear regression on historical daily avg prices')}
-                    </p>
+                    <div className="flex items-center gap-3">
+                        <select
+                            value={selectedCity}
+                            onChange={(e) => setSelectedCity(e.target.value)}
+                            disabled={loading}
+                            className="bg-background border border-border text-text-main text-xs rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary shadow-sm"
+                        >
+                            <option value="">{t('analytics_forecast_city_all', 'All Cities (Global)')}</option>
+                            {forecast.available_cities?.map(c => (
+                                <option key={c} value={c}>{c}</option>
+                            ))}
+                        </select>
+                        {loading && <span className="text-xs text-text-muted animate-pulse">{t('loading')}</span>}
+                    </div>
                 </div>
 
                 {/* Stats badges */}

@@ -85,15 +85,27 @@ export interface ForecastPoint {
     upper: number;
 }
 
+export interface ForecastHistoricalPoint {
+    date: string;
+    avg_price: number;
+}
+
 export interface ForecastData {
+    city: string | null;
+    available_cities: string[];
     r_squared: number;
     slope_per_day: number;
+    historical: ForecastHistoricalPoint[];
     forecast: ForecastPoint[];
 }
 
-export const fetchForecast = async (): Promise<ForecastData> => {
+export const fetchForecast = async (city?: string): Promise<ForecastData> => {
     try {
-        const response = await fetchWithAuth(`${API_BASE_URL}/stats/forecast`);
+        const url = new URL(`${API_BASE_URL}/stats/forecast`);
+        if (city) {
+            url.searchParams.append('city', city);
+        }
+        const response = await fetchWithAuth(url.toString());
         if (!response.ok) {
             throw new Error(`API Error: ${response.statusText}`);
         }

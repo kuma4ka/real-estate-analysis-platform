@@ -121,6 +121,7 @@ const resources = {
             analytics_forecast_fit_strong: 'Strong fit',
             analytics_forecast_fit_moderate: 'Moderate fit',
             analytics_forecast_fit_weak: 'Weak fit',
+            analytics_forecast_city_all: 'All Cities (Global)',
             
             "cities": {
                 "Київ": "Kyiv",
@@ -285,6 +286,7 @@ const resources = {
             analytics_forecast_fit_strong: 'Висока точність',
             analytics_forecast_fit_moderate: 'Помірна точність',
             analytics_forecast_fit_weak: 'Низька точність',
+            analytics_forecast_city_all: 'Всі міста (Глобально)',
             
             "cities": {}
         }

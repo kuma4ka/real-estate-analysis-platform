@@ -440,7 +440,7 @@ const AnalyticsDashboard: React.FC = () => {
             </div>
 
             {/* Price Forecast — full width */}
-            <PriceForecastChart recentTrend={stats.recent_trend} />
+            <PriceForecastChart />
 
             {/* 4+ Drilldown Modal */}
             {drilldownOpen && (
