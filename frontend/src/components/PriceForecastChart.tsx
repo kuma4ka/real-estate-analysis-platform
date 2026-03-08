@@ -141,7 +141,7 @@ const PriceForecastChart: React.FC = () => {
                         >
                             <option value="">{t('analytics_forecast_city_all', 'All Cities (Global)')}</option>
                             {forecast.available_cities?.map(c => (
-                                <option key={c} value={c}>{c}</option>
+                                <option key={c} value={c}>{t(`cities.${c}`, c)}</option>
                             ))}
                         </select>
                         {loading && <span className="text-xs text-text-muted animate-pulse">{t('loading')}</span>}
