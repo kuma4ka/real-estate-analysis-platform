@@ -172,8 +172,12 @@ def get_price_forecast():
         return jsonify({
             'city': city_filter,
             'available_cities': available_cities,
+            'r_squared': 0.0,
+            'slope_per_day': 0.0,
+            'historical': [],
+            'forecast': [],
             'error': 'Not enough historical data for a forecast (need \u2265 3 days)',
-        }), 422
+        }), 200
 
     # Convert dates to integer offsets (day 0 = first data point)
     def to_date(val):
@@ -207,11 +211,12 @@ def get_price_forecast():
         future_x = last_x + i
         future_date = last_date + datetime.timedelta(days=i)
         price = float(np.polyval(coeffs, future_x))
+        clamped_price = max(0.0, price)
         forecast.append({
             'date': future_date.isoformat(),
-            'predicted_price': round(price, 0),
+            'predicted_price': round(clamped_price, 0),
             'lower': round(max(0.0, price - sigma), 0),
-            'upper': round(price + sigma, 0),
+            'upper': round(clamped_price + sigma, 0),
         })
 
     historical = []

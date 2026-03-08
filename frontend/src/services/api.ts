@@ -97,6 +97,7 @@ export interface ForecastData {
     slope_per_day: number;
     historical: ForecastHistoricalPoint[];
     forecast: ForecastPoint[];
+    error?: string;
 }
 
 export const fetchForecast = async (city?: string): Promise<ForecastData> => {
