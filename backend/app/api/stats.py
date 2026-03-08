@@ -121,29 +121,63 @@ def get_stats():
 def get_price_forecast():
     """
     Linear-regression price forecast for the next 30 days.
-    Uses ALL historical daily avg-price rows so the trend is accurate.
+
+    Query params:
+      city (optional) – filter to a specific city; omit for global data.
+
     Returns:
+      city           – the city filtered on, or null for global
       r_squared      – goodness of fit (0–1)
       slope_per_day  – $ change per calendar day
       forecast       – [{date, predicted_price, lower, upper}]  (30 days)
+      available_cities – distinct cities available for filtering
     """
+    from flask import request as flask_request
+
     try:
         import numpy as np
     except ImportError:
         return jsonify({'error': 'numpy not available on this server'}), 500
 
-    rows = Property.query.with_entities(
+    city_filter = flask_request.args.get('city', '').strip() or None
+
+    # Build the historical rows query, optionally filtered by city
+    base = Property.query.with_entities(
         func.date(Property.created_at).label('date'),
         func.avg(Property.price).label('avg_price'),
     ).filter(
         Property.price.isnot(None),
         Property.created_at.isnot(None),
-    ).group_by(func.date(Property.created_at)).order_by(
+    )
+    if city_filter:
+        base = base.filter(Property.city == city_filter)
+
+    rows = base.group_by(func.date(Property.created_at)).order_by(
         func.date(Property.created_at)
     ).all()
 
+    # Fetch available cities for the dropdown (always global)
+    city_rows = (
+        Property.query
+        .with_entities(Property.city)
+        .filter(Property.city.isnot(None))
+        .group_by(Property.city)
+        .order_by(func.count(Property.id).desc())
+        .limit(20)
+        .all()
+    )
+    available_cities = [r[0] for r in city_rows]
+
     if len(rows) < 3:
-        return jsonify({'error': 'Not enough historical data for a forecast (need ≥ 3 days)'}), 422
+        return jsonify({
+            'city': city_filter,
+            'available_cities': available_cities,
+            'r_squared': 0.0,
+            'slope_per_day': 0.0,
+            'historical': [],
+            'forecast': [],
+            'error': 'Not enough historical data for a forecast (need \u2265 3 days)',
+        }), 200
 
     # Convert dates to integer offsets (day 0 = first data point)
     def to_date(val):
@@ -171,21 +205,39 @@ def get_price_forecast():
     # Forecast: next 30 days after the last data point
     last_x = int(xs[-1])
     last_date = to_date(rows[-1][0])
+    
+    # Real estate prices cannot realistically drop to $0. 
+    # We establish a maximum naive drop constraint: 50% of the last known price.
+    last_actual_price = float(ys[-1]) if len(ys) > 0 else 0.0
+    price_floor = max(0.0, last_actual_price * 0.5)
 
     forecast = []
     for i in range(1, 31):
         future_x = last_x + i
         future_date = last_date + datetime.timedelta(days=i)
-        price = float(np.polyval(coeffs, future_x))
+        raw_price = float(np.polyval(coeffs, future_x))
+        clamped_price = max(price_floor, raw_price)
+        
         forecast.append({
             'date': future_date.isoformat(),
-            'predicted_price': round(price, 0),
-            'lower': round(max(0.0, price - sigma), 0),
-            'upper': round(price + sigma, 0),
+            'predicted_price': round(clamped_price, 0),
+            'lower': round(max(price_floor * 0.8, clamped_price - sigma), 0),
+            'upper': round(clamped_price + sigma, 0),
+        })
+
+    historical = []
+    for r in rows:
+        historical.append({
+            'date': to_date(r[0]).isoformat(),
+            'avg_price': round(float(r[1] or 0), 0)
         })
 
     return jsonify({
+        'city': city_filter,
+        'available_cities': available_cities,
         'r_squared': r_squared,
         'slope_per_day': round(slope, 2),
+        'historical': historical,
         'forecast': forecast,
     })
+

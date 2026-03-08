@@ -12,13 +12,7 @@ import {
     ResponsiveContainer,
     ReferenceLine,
 } from 'recharts';
-import { fetchForecast, type ForecastData, type ForecastPoint } from '../services/api';
-import type { StatsData } from '../services/api';
-
-interface Props {
-    /** Actual historical trend from the stats payload (used as the left axis anchor) */
-    recentTrend: StatsData['recent_trend'];
-}
+import { fetchForecast, type ForecastData, type ForecastPoint, type ForecastHistoricalPoint } from '../services/api';
 
 const formatPrice = (v: number) => {
     if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
@@ -33,22 +27,36 @@ const rSquaredLabel = (r2: number, t: (key: string) => string): { label: string;
     return { label: t('analytics_forecast_fit_weak'), color: 'text-red-400' };
 };
 
-const PriceForecastChart: React.FC<Props> = ({ recentTrend }) => {
+interface Props {
+    isExporting?: boolean;
+}
+
+const PriceForecastChart: React.FC<Props> = ({ isExporting = false }) => {
     const { t } = useTranslation();
     const [forecast, setForecast] = useState<ForecastData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [selectedCity, setSelectedCity] = useState<string>('');
 
     useEffect(() => {
-        fetchForecast()
-            .then(setForecast)
-            .catch((err: unknown) =>
-                setError(err instanceof Error ? err.message : 'Forecast unavailable')
-            )
-            .finally(() => setLoading(false));
-    }, []);
+        let cancelled = false;
+        const load = async () => {
+            setLoading(true);
+            setError(null);
+            try {
+                const data = await fetchForecast(selectedCity || undefined);
+                if (!cancelled) setForecast(data);
+            } catch (err: unknown) {
+                if (!cancelled) setError(err instanceof Error ? err.message : 'Forecast unavailable');
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        };
+        void load();
+        return () => { cancelled = true; };
+    }, [selectedCity]);
 
-    if (loading) {
+    if (!forecast && loading) {
         return (
             <div className="bg-surface rounded-xl border border-border p-5 shadow-card animate-pulse">
                 <div className="h-4 bg-border rounded w-48 mb-4" />
@@ -57,21 +65,19 @@ const PriceForecastChart: React.FC<Props> = ({ recentTrend }) => {
         );
     }
 
-    if (error || !forecast) {
+    // If we have nothing at all (e.g. initial network failure)
+    if (!forecast && error) {
         return (
-            <div className="bg-surface rounded-xl border border-border p-5 shadow-card">
-                <h3 className="text-sm font-semibold text-text-main mb-2">
-                    {t('analytics_forecast_title', 'Price Forecast (30 days)')}
-                </h3>
-                <p className="text-sm text-text-muted">
-                    {error ?? t('analytics_forecast_unavailable', 'Forecast data unavailable')}
-                </p>
+            <div className="bg-surface rounded-xl border border-border p-5 shadow-card h-[380px] flex items-center justify-center">
+                <p className="text-text-muted">{error}</p>
             </div>
         );
     }
 
+    const hasDataError = error || forecast?.error;
+    const hasData = !hasDataError && forecast && forecast.historical.length > 0 && forecast.forecast.length > 0;
+
     // ── Build unified dataset ──────────────────────────────────────────────
-    // Historical points (actual price, no confidence band)
     type ChartPoint = {
         date: string;
         actual?: number;
@@ -82,78 +88,94 @@ const PriceForecastChart: React.FC<Props> = ({ recentTrend }) => {
         isForecast?: boolean;
     };
 
-    const historical: ChartPoint[] = recentTrend.map(r => ({
-        date: r.month,
-        actual: r.avg_price,
-    }));
+    let data: ChartPoint[] = [];
+    let todayDate: string | undefined;
+    let fitLabel = '', fitColor = '', trend = '', trendColor = '';
 
-    // Boundary point — last historical date gets both actual & predicted so the
-    // two lines connect visually without a gap.
-    const lastHist = historical[historical.length - 1];
+    if (hasData && forecast) {
+        const historical: ChartPoint[] = forecast.historical.map((r: ForecastHistoricalPoint) => ({
+            date: r.date,
+            actual: r.avg_price,
+        }));
 
-    // First forecast point — bridge from last actual to first predicted
-    const firstForecast = forecast.forecast[0];
-    const bridgePoint: ChartPoint = {
-        date: lastHist?.date ?? firstForecast.date,
-        actual: lastHist?.actual,
-        predicted: firstForecast.predicted_price,
-        lower: firstForecast.lower,
-        upper: firstForecast.upper,
-        isForecast: false,
-    };
+        const lastHist = historical[historical.length - 1];
+        const firstForecast = forecast.forecast[0];
+        
+        const bridgePoint: ChartPoint = {
+            date: lastHist?.date ?? firstForecast.date,
+            actual: lastHist?.actual,
+            predicted: firstForecast.predicted_price,
+            lower: firstForecast.lower,
+            upper: firstForecast.upper,
+            isForecast: false,
+        };
 
-    const forecastPoints: ChartPoint[] = forecast.forecast.map((p: ForecastPoint) => ({
-        date: p.date,
-        predicted: p.predicted_price,
-        lower: p.lower,
-        upper: p.upper,
-        isForecast: true,
-    }));
+        const forecastPoints: ChartPoint[] = forecast.forecast.map((p: ForecastPoint) => ({
+            date: p.date,
+            predicted: p.predicted_price,
+            lower: p.lower,
+            upper: p.upper,
+            isForecast: true,
+        }));
 
-    const data: ChartPoint[] = [...historical, bridgePoint, ...forecastPoints];
+        data = [...historical, bridgePoint, ...forecastPoints];
 
-    // Index of the last historical entry — used to draw the "today" reference line
-    const todayIndex = historical.length - 1;
-    const todayDate = historical[todayIndex]?.date;
+        todayDate = historical[historical.length - 1]?.date;
 
-    const { label: fitLabel, color: fitColor } = rSquaredLabel(forecast.r_squared, t);
-    const trend = forecast.slope_per_day >= 0 ? '↑' : '↓';
-    const trendColor = forecast.slope_per_day >= 0 ? 'text-emerald-400' : 'text-red-400';
+        const fit = rSquaredLabel(forecast.r_squared, t);
+        fitLabel = fit.label;
+        fitColor = fit.color;
+        
+        trend = forecast.slope_per_day >= 0 ? '↑' : '↓';
+        trendColor = forecast.slope_per_day >= 0 ? 'text-emerald-400' : 'text-red-400';
+    }
 
     return (
         <div className="bg-surface rounded-xl border border-border p-5 shadow-card">
             {/* Header */}
-            <div className="flex items-start justify-between mb-4 flex-wrap gap-2">
+            <div className="flex items-start justify-between mb-4 flex-wrap gap-4">
                 <div>
-                    <h3 className="text-sm font-semibold text-text-main">
+                     <h3 className="text-sm font-semibold text-text-main pb-1">
                         {t('analytics_forecast_title', 'Price Forecast — next 30 days')}
                     </h3>
-                    <p className="text-xs text-text-muted mt-0.5">
-                        {t('analytics_forecast_subtitle', 'Linear regression on historical daily avg prices')}
-                    </p>
+                    <div className="flex items-center gap-3">
+                        <select
+                            value={selectedCity}
+                            onChange={(e) => setSelectedCity(e.target.value)}
+                            disabled={loading}
+                            className="bg-background border border-border text-text-main text-xs rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary shadow-sm"
+                        >
+                            <option value="">{t('analytics_forecast_city_all', 'All Cities (Global)')}</option>
+                            {forecast?.available_cities?.map(c => (
+                                <option key={c} value={c}>{t(`cities.${c}`, c)}</option>
+                            ))}
+                        </select>
+                        {loading && <span className="text-xs text-text-muted animate-pulse">{t('loading')}</span>}
+                    </div>
                 </div>
 
                 {/* Stats badges */}
-                <div className="flex items-center gap-3 text-xs font-mono">
-                    {/* R² badge */}
-                    <div className="flex flex-col items-end">
-                        <span className="text-text-muted">R²</span>
-                        <span className={`font-bold ${fitColor}`}>
-                            {forecast.r_squared.toFixed(3)}
-                            <span className="ml-1 font-normal text-text-muted">({fitLabel})</span>
-                        </span>
+                {hasData && forecast && (
+                    <div className="flex items-center gap-3 text-xs font-mono">
+                        <div className="flex flex-col items-end">
+                            <span className="text-text-muted">R²</span>
+                            <span className={`font-bold ${fitColor}`}>
+                                {forecast.r_squared.toFixed(3)}
+                                <span className="ml-1 font-normal text-text-muted">({fitLabel})</span>
+                            </span>
+                        </div>
+                        <div className="flex flex-col items-end">
+                            <span className="text-text-muted">{t('analytics_forecast_trend', 'Trend/day')}</span>
+                            <span className={`font-bold ${trendColor}`}>
+                                {trend} {formatPrice(Math.abs(forecast.slope_per_day))}
+                            </span>
+                        </div>
                     </div>
-                    {/* Trend badge */}
-                    <div className="flex flex-col items-end">
-                        <span className="text-text-muted">{t('analytics_forecast_trend', 'Trend/day')}</span>
-                        <span className={`font-bold ${trendColor}`}>
-                            {trend} {formatPrice(Math.abs(forecast.slope_per_day))}
-                        </span>
-                    </div>
-                </div>
+                )}
             </div>
 
-            <ResponsiveContainer width="100%" height={300}>
+            {hasData ? (
+                <ResponsiveContainer width="100%" height={300}>
                 <ComposedChart data={data} margin={{ top: 8, right: 16, bottom: 0, left: 10 }}>
                     <defs>
                         <linearGradient id="forecastBand" x1="0" y1="0" x2="0" y2="1">
@@ -222,6 +244,7 @@ const PriceForecastChart: React.FC<Props> = ({ recentTrend }) => {
                         name="band_lower"
                         dot={false}
                         activeDot={false}
+                        isAnimationActive={!isExporting}
                     />
                     <Area
                         type="monotone"
@@ -233,6 +256,7 @@ const PriceForecastChart: React.FC<Props> = ({ recentTrend }) => {
                         name="band_upper"
                         dot={false}
                         activeDot={false}
+                        isAnimationActive={!isExporting}
                         // Stack above lower to create the band
                         baseValue="dataMin"
                     />
@@ -247,6 +271,7 @@ const PriceForecastChart: React.FC<Props> = ({ recentTrend }) => {
                         activeDot={{ r: 4 }}
                         name="actual"
                         connectNulls
+                        isAnimationActive={!isExporting}
                     />
 
                     {/* Forecast dashed line */}
@@ -260,6 +285,7 @@ const PriceForecastChart: React.FC<Props> = ({ recentTrend }) => {
                         activeDot={{ r: 4 }}
                         name="predicted"
                         connectNulls
+                        isAnimationActive={!isExporting}
                     />
 
                     {/* "Today" divider */}
@@ -279,6 +305,13 @@ const PriceForecastChart: React.FC<Props> = ({ recentTrend }) => {
                     )}
                 </ComposedChart>
             </ResponsiveContainer>
+            ) : (
+                <div className="flex items-center justify-center h-[300px]">
+                    <p className="text-text-muted">
+                        {hasDataError || t('analytics_forecast_unavailable', 'Forecast data unavailable')}
+                    </p>
+                </div>
+            )}
 
             <p className="text-xs text-text-muted mt-3">
                 ⚠ {t('analytics_forecast_disclaimer',

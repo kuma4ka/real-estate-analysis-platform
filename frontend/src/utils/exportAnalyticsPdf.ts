@@ -5,6 +5,7 @@ interface ChartRefs {
     cityRef: HTMLElement | null;
     priceDistRef: HTMLElement | null;
     trendRef: HTMLElement | null;
+    forecastRef: HTMLElement | null;
 }
 
 type TFunction = (key: string, fallback?: string) => string;
@@ -268,6 +269,23 @@ export async function exportAnalyticsPdf(
             alternateRowStyles: { fillColor: BG },
             theme: 'plain',
         });
+    }
+
+    // ── 7. Price Forecast chart ───────────────────────────────────────────────
+    if (refs.forecastRef) {
+        if (y + 80 > doc.internal.pageSize.getHeight() - margin) { doc.addPage(); y = margin; }
+        sectionTitle(t('analytics_forecast_title', 'Price Forecast'));
+
+        // Brief delay to let animations settle for the forecast chart just in case
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        const img = await captureElement(refs.forecastRef, isDark);
+        if (img) {
+            const imgH = contentW * 0.42;
+            if (y + imgH > doc.internal.pageSize.getHeight() - margin) { doc.addPage(); y = margin; }
+            doc.addImage(img, 'PNG', margin, y, contentW, imgH);
+            y += imgH + 12;
+        }
     }
 
     // ── Footer on each page ────────────────────────────────────────────────

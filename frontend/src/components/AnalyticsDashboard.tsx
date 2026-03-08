@@ -36,6 +36,7 @@ const AnalyticsDashboard: React.FC = () => {
     const cityRef     = useRef<HTMLDivElement>(null);
     const priceDistRef = useRef<HTMLDivElement>(null);
     const trendRef    = useRef<HTMLDivElement>(null);
+    const forecastRef = useRef<HTMLDivElement>(null);
 
     const [stats, setStats] = useState<StatsData | null>(null);
     const [loading, setLoading] = useState(true);
@@ -60,6 +61,7 @@ const AnalyticsDashboard: React.FC = () => {
                     cityRef: cityRef.current,
                     priceDistRef: priceDistRef.current,
                     trendRef: trendRef.current,
+                    forecastRef: forecastRef.current,
                 },
                 // Always use English for jsPDF — built-in Helvetica doesn't support Cyrillic
                 (key, fallback) => {
@@ -440,7 +442,9 @@ const AnalyticsDashboard: React.FC = () => {
             </div>
 
             {/* Price Forecast — full width */}
-            <PriceForecastChart recentTrend={stats.recent_trend} />
+            <div ref={forecastRef}>
+                <PriceForecastChart isExporting={isExporting} />
+            </div>
 
             {/* 4+ Drilldown Modal */}
             {drilldownOpen && (

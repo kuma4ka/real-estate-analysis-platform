@@ -246,7 +246,7 @@ def process_url_in_thread(url, app_config, scrape_func):
                     price=data.get('price'),
                     currency=data.get('currency'),
                     address=canonical_addr if canonical_addr else data.get('address'),
-                    city=data.get('city'),
+                    city=normalize_city(data.get('city')) or data.get('city') if data.get('city') else None,
                     district=data.get('district'),
                     latitude=lat,
                     longitude=lng,
