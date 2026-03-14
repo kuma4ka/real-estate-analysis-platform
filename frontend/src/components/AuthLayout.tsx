@@ -44,7 +44,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
                     onClick={toggleLanguage}
                     className="px-3 py-1.5 rounded-full text-xs font-semibold bg-surface border border-border text-text-muted hover:text-primary hover:border-primary transition-colors"
                 >
-                    {i18n.language?.toUpperCase().substring(0, 2) || 'UK'}
+                    {i18n.language === 'uk' ? '🇺🇦 УКР' : '🇬🇧 ENG'}
                 </button>
             </div>
             
