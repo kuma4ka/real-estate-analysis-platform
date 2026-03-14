@@ -7,6 +7,8 @@ const resources = {
         translation: {
             "app_title": "Real Estate Analysis",
             "filters": "Filters",
+            "search": "Keyword Search",
+            "search_placeholder": "Search by title or address...",
             "search_results": "Search Results",
             "city": "City",
             "rooms": "Rooms",
@@ -196,6 +198,8 @@ const resources = {
         translation: {
             "app_title": "Аналіз Нерухомості",
             "filters": "Фільтри",
+            "search": "Пошук за словом",
+            "search_placeholder": "Шукайте за назвою або адресою...",
             "search_results": "Результати пошуку",
             "city": "Місто",
             "rooms": "Кімнат",
