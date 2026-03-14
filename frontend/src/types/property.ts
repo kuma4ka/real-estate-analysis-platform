@@ -38,4 +38,5 @@ export interface PropertyFilters {
     price_min?: number | '';
     price_max?: number | '';
     sort?: 'newest' | 'cheapest' | 'expensive';
+    search?: string;
 }

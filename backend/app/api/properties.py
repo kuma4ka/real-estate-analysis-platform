@@ -1,5 +1,5 @@
 from flask import jsonify, request
-from sqlalchemy import desc, asc
+from sqlalchemy import desc, asc, or_
 from app.models import Property
 from app.api import bp
 from app.api.schemas import properties_schema, property_schema
@@ -34,8 +34,18 @@ def get_properties():
     price_min = request.args.get('price_min', type=float)
     price_max = request.args.get('price_max', type=float)
     sort_by = request.args.get('sort', 'newest')
+    search = request.args.get('search', type=str)
 
     query = Property.query.filter(Property.is_active)
+
+    if search:
+        term = f"%{search}%"
+        query = query.filter(
+            or_(
+                Property.title.ilike(term),
+                Property.address.ilike(term)
+            )
+        )
 
     if city:
         resolved = _resolve_city_alias(city)
