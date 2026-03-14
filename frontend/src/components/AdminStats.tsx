@@ -7,7 +7,17 @@ interface SystemStats {
   total_properties: number;
   active_properties: number;
   role_distribution: Record<string, number>;
+  server_uptime_seconds?: number;
+  total_requests_today?: number;
+  db_status?: string;
 }
+
+const formatUptime = (seconds?: number) => {
+  if (seconds === undefined) return 'N/A';
+  const hrs = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  return `${hrs}h ${mins}m`;
+};
 
 const AdminStats: React.FC = () => {
   const { t } = useTranslation();
@@ -63,6 +73,24 @@ const AdminStats: React.FC = () => {
           <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg text-center shadow-sm">
             <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t('admin_active_properties', 'Active Properties')}</p>
             <p className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.active_properties}</p>
+          </div>
+        </div>
+
+        <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 uppercase tracking-wider">{t('admin_system_metrics', 'System Metrics')}</h4>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg text-center shadow-sm border border-blue-100 dark:border-blue-800">
+            <p className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-1">{t('admin_db_status', 'Database Status')}</p>
+            <p className={`text-xl font-bold ${stats.db_status === 'Connected' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+              {stats.db_status || 'Unknown'}
+            </p>
+          </div>
+          <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg text-center shadow-sm border border-indigo-100 dark:border-indigo-800">
+            <p className="text-sm font-medium text-indigo-800 dark:text-indigo-300 mb-1">{t('admin_requests_today', 'Requests Today')}</p>
+            <p className="text-xl font-bold text-indigo-900 dark:text-indigo-200">{stats.total_requests_today || 0}</p>
+          </div>
+          <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg text-center shadow-sm border border-purple-100 dark:border-purple-800">
+            <p className="text-sm font-medium text-purple-800 dark:text-purple-300 mb-1">{t('admin_uptime', 'Server Uptime')}</p>
+            <p className="text-xl font-bold text-purple-900 dark:text-purple-200">{formatUptime(stats.server_uptime_seconds)}</p>
           </div>
         </div>
 

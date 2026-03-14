@@ -20,7 +20,11 @@ def create_app(config_class=Config):
     ma.init_app(app)
     limiter.init_app(app)
 
-
+    # Before Request Hook for metrics
+    from app.core.metrics import record_request
+    @app.before_request
+    def before_request_hook():
+        record_request()
 
     # Ensure models are loaded for Alembic/SQLAlchemy
     __import__('app.models')
