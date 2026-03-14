@@ -25,6 +25,7 @@ export const fetchProperties = async (filters: PropertyFilters = {}): Promise<Pr
         if (filters.price_min !== undefined && filters.price_min !== '') params.append('price_min', filters.price_min.toString());
         if (filters.price_max !== undefined && filters.price_max !== '') params.append('price_max', filters.price_max.toString());
         if (filters.sort) params.append('sort', filters.sort);
+        if (filters.search) params.append('search', filters.search);
 
         const response = await fetchWithAuth(`${API_BASE_URL}/properties?${params.toString()}`);
 
