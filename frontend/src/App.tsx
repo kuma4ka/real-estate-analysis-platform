@@ -200,7 +200,14 @@ function MainLayout({ children }: { children?: React.ReactNode }) {
                     )
                 ) : viewMode === 'map' ? (
                     <div className="h-[calc(100vh-120px)] w-full rounded-xl overflow-hidden border border-border shadow-card">
-                        <MapComponent properties={mapProperties.length > 0 ? mapProperties : properties} />
+                        {mapLoaded
+                            ? <MapComponent properties={mapProperties} />
+                            : (
+                                <div className="flex items-center justify-center h-full bg-surface">
+                                    <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary border-t-transparent" />
+                                </div>
+                            )
+                        }
                     </div>
                 ) : (
                     <>
