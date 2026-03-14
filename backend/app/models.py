@@ -29,6 +29,23 @@ class User(db.Model):
             'last_login': self.last_login.isoformat() if self.last_login else None
         }
 
+class Source(db.Model):
+    __tablename__ = 'sources'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), unique=True, nullable=False)
+    base_url = db.Column(db.Text, nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'base_url': self.base_url,
+            'is_active': self.is_active
+        }
+
 class Property(db.Model):
     __tablename__ = 'properties'
 
