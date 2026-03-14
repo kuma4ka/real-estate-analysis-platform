@@ -49,6 +49,7 @@ describe('FilterBar', () => {
       rooms: '',
       price_min: 50000,
       price_max: '',
+      search: '',
       sort: 'newest',
       page: 1
     });
@@ -94,6 +95,7 @@ describe('FilterBar', () => {
       rooms: undefined,
       price_min: undefined,
       price_max: undefined,
+      search: '',
       sort: 'newest',
       page: 1
     });

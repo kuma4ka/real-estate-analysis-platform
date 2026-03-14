@@ -118,3 +118,14 @@ class TestPropertiesEndpoint:
         data = resp.get_json()['data']
         assert len(data) == 1
         assert data[0]['price'] == 50_000
+
+    def test_properties_filter_search(self, seeded_client):
+        # Both "Квартира з координатами" and "Квартира без координат" match "координат"
+        resp = seeded_client.get('/api/v1/properties?search=координат')
+        data = resp.get_json()['data']
+        assert len(data) == 2
+
+        resp2 = seeded_client.get('/api/v1/properties?search=без')
+        data2 = resp2.get_json()['data']
+        assert len(data2) == 1
+        assert data2[0]['title'] == 'Квартира без координат'

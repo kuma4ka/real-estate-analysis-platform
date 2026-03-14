@@ -13,9 +13,11 @@ const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange }) => {
     const [priceMin, setPriceMin] = useState<number | ''>('');
     const [priceMax, setPriceMax] = useState<number | ''>('');
     const [sort, setSort] = useState<PropertyFilters['sort']>('newest');
+    const [searchQuery, setSearchQuery] = useState('');
 
     const handleApply = () => {
         onFilterChange({
+            search: searchQuery,
             city,
             rooms,
             price_min: priceMin,
@@ -31,7 +33,9 @@ const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange }) => {
         setPriceMin('');
         setPriceMax('');
         setSort('newest');
+        setSearchQuery('');
         onFilterChange({
+            search: '',
             city: '',
             rooms: undefined as unknown as number,
             price_min: undefined as unknown as number,
@@ -46,6 +50,18 @@ const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange }) => {
     return (
         <div className="bg-surface p-5 rounded-xl shadow-card border border-border">
             <h3 className="text-base font-semibold text-text-main mb-5">{t('filters')}</h3>
+
+            {/* Keyword Search */}
+            <div className="mb-4">
+                <label className="block text-sm font-medium text-text-muted mb-1.5">{t('search', 'Keyword Search')}</label>
+                <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder={t('search_placeholder', 'Search by title or address...')}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-text-main text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+                />
+            </div>
 
             {/* City */}
             <div className="mb-4">
