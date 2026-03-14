@@ -120,7 +120,8 @@ def get_map_properties():
     price_max = request.args.get('price_max', type=float)
 
     if city:
-        query = query.filter(Property.city.ilike(f"%{city}%"))
+        resolved = _resolve_city_alias(city)
+        query = query.filter(Property.city.ilike(f"%{resolved}%"))
     if rooms:
         query = query.filter(Property.rooms == rooms)
     if price_min:
@@ -149,5 +150,19 @@ def get_map_properties():
         'source_url': p.source_url,
         'created_at': p.created_at.isoformat() if p.created_at else None
     } for p in properties]
+
+    auth_header = request.headers.get('Authorization')
+    is_authenticated = False
+    if auth_header:
+        parts = auth_header.split(' ')
+        if len(parts) > 1:
+            from app.core.auth import decode_token
+            resp = decode_token(parts[1])
+            if not isinstance(resp, str):
+                is_authenticated = True
+
+    if not is_authenticated:
+        for item in data:
+            item['source_url'] = None
 
     return jsonify({'data': data, 'count': len(data)})
