@@ -7,6 +7,8 @@ const resources = {
         translation: {
             "app_title": "Real Estate Analysis",
             "filters": "Filters",
+            "search": "Keyword Search",
+            "search_placeholder": "Search by title or address...",
             "search_results": "Search Results",
             "city": "City",
             "rooms": "Rooms",
