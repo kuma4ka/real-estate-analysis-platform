@@ -2,17 +2,17 @@ import re
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 from .network import fetch_html
-from .config import BASE_URL, LISTINGS_URL
+from .config import BASE_URL
 
 from app.services.cities import normalize_city
 from app.services.address_normalizer import AddressNormalizer
 
 
-def get_listing_urls(page=1):
+def get_listing_urls(listings_url, page=1):
     """
     Scrape the listing page on bon.ua to find individual property URLs.
     """
-    url = f"{LISTINGS_URL}?page={page}"
+    url = f"{listings_url}?page={page}"
     print(f"    Fetching Bon.ua listing page: {url}")
     html = fetch_html(url)
     

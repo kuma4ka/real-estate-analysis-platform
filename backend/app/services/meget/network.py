@@ -1,7 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
-from .config import BASE_URL, HEADERS
+from .config import HEADERS
 
 
 def fetch_html(url):
@@ -14,8 +14,8 @@ def fetch_html(url):
     return None
 
 
-def get_listing_urls(page=1):
-    url = f"{BASE_URL}show/{page}/" if page > 1 else BASE_URL
+def get_listing_urls(base_url, page=1):
+    url = f"{base_url}show/{page}/" if page > 1 else base_url
     soup = fetch_html(url)
 
     if not soup:
