@@ -76,26 +76,31 @@ const Profile: React.FC = () => {
 
   return (
     <div className="max-w-2xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-      <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 mb-8">
+      <h2 className="text-3xl font-bold text-text-main tracking-tight mb-8 flex items-center gap-3">
+        <span className="bg-primary/10 text-primary p-2 rounded-xl">👤</span>
         {t('profile_title', 'User Profile')}
       </h2>
       
       {user.role === 'Admin' && <AdminStats />}
 
-      <div className="bg-white dark:bg-gray-800 shadow rounded-lg mb-8 overflow-hidden">
-        <div className="px-6 py-5 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">{t('profile_account_details', 'Account Details')}</h3>
+      <div className="bg-surface border border-border shadow-card rounded-2xl mb-8 overflow-hidden">
+        <div className="px-6 py-5 border-b border-border bg-background/50">
+          <h3 className="text-lg font-semibold text-text-main">{t('profile_account_details', 'Account Details')}</h3>
         </div>
-        <div className="px-6 py-5">
+        <div className="px-6 py-6">
           <dl className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
             <div className="sm:col-span-1">
-              <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('profile_email', 'Email Address')}</dt>
-              <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100 font-semibold">{user.email}</dd>
+              <dt className="text-sm font-medium text-text-muted mb-1">{t('profile_email', 'Email Address')}</dt>
+              <dd className="text-base text-text-main font-semibold flex items-center gap-2">
+                <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                {user.email}
+              </dd>
             </div>
             <div className="sm:col-span-1">
-              <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('profile_role', 'Role')}</dt>
-              <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100 font-semibold">
-                <span className="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded text-xs">
+              <dt className="text-sm font-medium text-text-muted mb-1">{t('profile_role', 'Role')}</dt>
+              <dd className="text-base text-text-main font-semibold flex items-center gap-2">
+                 <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                <span className="px-2.5 py-1 bg-primary/10 text-primary border border-primary/20 rounded-md text-xs tracking-wide uppercase">
                   {user.role === 'Admin' ? t('admin_role', 'Admin') : user.role === 'Analyst' ? t('analyst_role', 'Analyst') : user.role === 'User' ? t('user_role', 'User') : t('guest_role', 'Guest')}
                 </span>
               </dd>
@@ -104,54 +109,55 @@ const Profile: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
-        <div className="px-6 py-5 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">{t('profile_change_password', 'Change Password')}</h3>
+      <div className="bg-surface border border-border shadow-card rounded-2xl overflow-hidden">
+        <div className="px-6 py-5 border-b border-border bg-background/50">
+          <h3 className="text-lg font-semibold text-text-main">{t('profile_change_password', 'Change Password')}</h3>
         </div>
-        <div className="px-6 py-5">
+        <div className="px-6 py-6">
           {status && (
-            <div className={`p-4 mb-4 rounded-md text-sm ${status.type === 'error' ? 'bg-red-50 text-red-700 dark:bg-red-900/50 dark:text-red-200' : 'bg-green-50 text-green-700 dark:bg-green-900/50 dark:text-green-200'}`}>
+            <div className={`p-4 mb-6 rounded-xl text-sm font-medium flex items-center gap-3 ${status.type === 'error' ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-green-500/10 text-green-500 border border-green-500/20'}`}>
+              <span className="text-xl">{status.type === 'error' ? '⚠️' : '✅'}</span>
               {status.message}
             </div>
           )}
 
-          <form onSubmit={handlePasswordChange} className="space-y-4">
+          <form onSubmit={handlePasswordChange} className="space-y-5 max-w-md">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('profile_old_password', 'Old Password')}</label>
+              <label className="block text-sm font-medium text-text-main mb-1.5">{t('profile_old_password', 'Old Password')}</label>
               <input
                 type="password"
                 required
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                className="w-full px-4 py-2.5 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-primary bg-background text-text-main transition-colors"
                 value={oldPassword}
                 onChange={(e) => setOldPassword(e.target.value)}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('profile_new_password', 'New Password')}</label>
+              <label className="block text-sm font-medium text-text-main mb-1.5">{t('profile_new_password', 'New Password')}</label>
               <input
                 type="password"
                 required
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                className="w-full px-4 py-2.5 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-primary bg-background text-text-main transition-colors"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('profile_confirm_password', 'Confirm New Password')}</label>
+              <label className="block text-sm font-medium text-text-main mb-1.5">{t('profile_confirm_password', 'Confirm New Password')}</label>
               <input
                 type="password"
                 required
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                className="w-full px-4 py-2.5 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-primary bg-background text-text-main transition-colors"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
               />
             </div>
             
-            <div className="pt-2">
+            <div className="pt-4">
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full sm:w-auto bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
+                className="w-full sm:w-auto bg-primary text-white font-medium py-2.5 px-6 rounded-xl hover:bg-primary-hover focus:ring-4 focus:ring-primary/20 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
               >
                 {loading ? t('profile_changing_pwd', 'Changing...') : t('profile_change_pwd_btn', 'Change Password')}
               </button>
