@@ -138,17 +138,28 @@ function MainLayout() {
                         <div className="flex items-center gap-4">
                             {user ? (
                                 <div className="flex items-center gap-3">
-                                    <Link to="/profile" className="text-sm font-medium text-text-main hidden sm:block hover:underline cursor-pointer">
-                                        {user.email} <span className="text-text-muted text-xs">({user.role})</span>
+                                    <Link 
+                                        to="/profile" 
+                                        className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface border border-border hover:bg-background hover:border-primary/50 transition-all cursor-pointer group"
+                                    >
+                                        <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs">
+                                            👤
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-sm font-medium text-text-main group-hover:text-primary transition-colors leading-none">{user.email}</span>
+                                            <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider leading-none mt-0.5">{user.role}</span>
+                                        </div>
                                     </Link>
                                     <button
                                         onClick={() => {
                                             logout();
                                             window.location.reload();
                                         }}
-                                        className="text-sm font-medium text-red-500 hover:text-red-600 transition-colors"
+                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium text-red-500 bg-red-500/10 hover:bg-red-500/20 hover:text-red-600 transition-colors"
+                                        title={typeof t('logout') === 'string' ? t('logout') as string : 'Sign Out'}
                                     >
-                                        {t('logout', 'Sign Out')}
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                                        <span className="hidden sm:inline">{t('logout', 'Sign Out')}</span>
                                     </button>
                                 </div>
                             ) : (
