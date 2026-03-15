@@ -6,7 +6,6 @@ import PropertyCard from './components/PropertyCard';
 import FilterBar from './components/FilterBar';
 import MapComponent from './components/MapComponent';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
-import AdminStats from './components/AdminStats';
 
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -27,7 +26,7 @@ function MainLayout({ children }: { children?: React.ReactNode }) {
         sort: 'newest'
     });
     const [loading, setLoading] = useState<boolean>(true);
-    const [viewMode, setViewMode] = useState<'list' | 'map' | 'analytics' | 'admin'>('list');
+    const [viewMode, setViewMode] = useState<'list' | 'map' | 'analytics'>('list');
     const [darkMode, setDarkMode] = useState(() => {
         return localStorage.getItem('theme') === 'dark';
     });
@@ -93,17 +92,13 @@ function MainLayout({ children }: { children?: React.ReactNode }) {
         i18n.changeLanguage(newLang);
     };
 
-    const tabs: { key: 'list' | 'map' | 'analytics' | 'admin', label: string }[] = [
+    const tabs: { key: 'list' | 'map' | 'analytics', label: string }[] = [
         { key: 'list', label: t('view_list') || 'List' },
         { key: 'map', label: t('view_map') || 'Map' },
     ];
     
     if (user && (user.role === 'Analyst' || user.role === 'Admin')) {
         tabs.push({ key: 'analytics', label: t('view_analytics') || 'Analytics' });
-    }
-
-    if (user && user.role === 'Admin') {
-        tabs.push({ key: 'admin', label: t('admin_dashboard_title', 'Admin') });
     }
 
     return (
@@ -201,15 +196,6 @@ function MainLayout({ children }: { children?: React.ReactNode }) {
                         <div className="text-center py-20 text-text-muted">
                             <p className="text-lg font-semibold">{t('access_denied', 'Access denied')}</p>
                             <p className="text-sm mt-2">{t('analytics_analyst_only', 'Analytics is available for Analyst and Admin roles only.')}</p>
-                        </div>
-                    )
-                ) : viewMode === 'admin' ? (
-                    user && user.role === 'Admin' ? (
-                        <AdminStats />
-                    ) : (
-                        <div className="text-center py-20 text-text-muted">
-                            <p className="text-lg font-semibold">{t('access_denied', 'Access denied')}</p>
-                            <p className="text-sm mt-2">Admin access only.</p>
                         </div>
                     )
                 ) : viewMode === 'map' ? (
