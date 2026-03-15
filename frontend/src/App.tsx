@@ -7,17 +7,18 @@ import FilterBar from './components/FilterBar';
 import MapComponent from './components/MapComponent';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
 
-import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate, Outlet, useOutlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
 
-function MainLayout({ children }: { children?: React.ReactNode }) {
+function MainLayout() {
     const { t, i18n } = useTranslation();
     const { user, logout } = useAuth();
     const navigate = useNavigate();
+    const outlet = useOutlet();
     const [properties, setProperties] = useState<Property[]>([]);
     const [meta, setMeta] = useState<PaginationMeta | null>(null);
     const [filters, setFilters] = useState<PropertyFilters>({
@@ -187,7 +188,7 @@ function MainLayout({ children }: { children?: React.ReactNode }) {
 
             {/* Main Content */}
             <main className="max-w-[1400px] mx-auto flex-grow px-6 py-6 w-full flex flex-col">
-                {children ? children : (
+                {outlet ? <Outlet /> : (
                     <>
                         {viewMode === 'analytics' ? (
                     user && (user.role === 'Analyst' || user.role === 'Admin') ? (
@@ -327,16 +328,13 @@ function App() {
                 <Routes>
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
-                    <Route path="/profile" element={
-                        <ProtectedRoute>
-                            <MainLayout>
+                    <Route path="/" element={<MainLayout />}>
+                        <Route path="profile" element={
+                            <ProtectedRoute>
                                 <Profile />
-                            </MainLayout>
-                        </ProtectedRoute>
-                    } />
-                    <Route path="/*" element={
-                        <MainLayout />
-                    } />
+                            </ProtectedRoute>
+                        } />
+                    </Route>
                 </Routes>
             </Router>
         </AuthProvider>
