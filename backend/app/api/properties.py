@@ -1,7 +1,8 @@
-from flask import jsonify, request
+from flask import jsonify, request, abort
 from sqlalchemy import desc, asc, or_
 from app.models import Property
 from app.api import bp
+from app import db
 from app.api.schemas import properties_schema, property_schema
 from app.services.cities import CITIES
 
@@ -96,7 +97,9 @@ def get_properties():
 
 @bp.route('/properties/<int:id>', methods=['GET'])
 def get_property(id):
-    prop = Property.query.get_or_404(id)
+    prop = db.session.get(Property, id)
+    if prop is None:
+        abort(404)
     data = property_schema.dump(prop)
 
     auth_header = request.headers.get('Authorization')
