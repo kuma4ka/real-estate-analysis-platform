@@ -28,7 +28,7 @@ def seeded_client(client):
             latitude=50.45,
             longitude=30.52,
             source_url='http://example.com/1',
-            created_at=datetime.datetime.utcnow(),
+            created_at=datetime.datetime.now(datetime.timezone.utc),
         )
         p2 = Property(
             title='Квартира без координат',
@@ -39,7 +39,7 @@ def seeded_client(client):
             latitude=None,
             longitude=None,
             source_url='http://example.com/2',
-            created_at=datetime.datetime.utcnow(),
+            created_at=datetime.datetime.now(datetime.timezone.utc),
         )
         db.session.add_all([p1, p2])
         db.session.commit()
@@ -79,7 +79,7 @@ class TestMapEndpoint:
                 latitude=None,
                 longitude=None,
                 source_url='http://example.com/3',
-                created_at=datetime.datetime.utcnow(),
+                created_at=datetime.datetime.now(datetime.timezone.utc),
             )
             db.session.add(p)
             db.session.commit()
