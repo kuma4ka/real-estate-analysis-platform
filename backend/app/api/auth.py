@@ -74,8 +74,14 @@ def login():
     user = User.query.filter_by(email=validated_data['email']).first()
 
     if user:
-        if user.locked_until and user.locked_until > datetime.now(timezone.utc):
-            return jsonify({"message": "Account temporarily locked. Please try again later."}), 429
+        if user.locked_until:
+            now = datetime.now(timezone.utc)
+            locked_until = user.locked_until
+            # SQLite stores naive datetimes; make comparison timezone-safe
+            if locked_until.tzinfo is None:
+                now = now.replace(tzinfo=None)
+            if locked_until > now:
+                return jsonify({"message": "Account temporarily locked. Please try again later."}), 429
 
         if user.check_password(validated_data['password']):
             token = generate_token(user.id, user.role)
