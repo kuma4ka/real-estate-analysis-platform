@@ -37,6 +37,11 @@ def get_properties():
     sort_by = request.args.get('sort', 'newest')
     search = request.args.get('search', type=str)
 
+    if price_min is not None and price_min < 0:
+        return jsonify({"message": "price_min cannot be negative"}), 400
+    if price_max is not None and price_max < 0:
+        return jsonify({"message": "price_max cannot be negative"}), 400
+
     query = Property.query.filter(Property.is_active)
 
     if search:
