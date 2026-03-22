@@ -1,0 +1,44 @@
+<svg width="220" height="220" viewBox="0 0 220 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="gradBlue" x1="0%" y1="100%" x2="0%" y2="0%">
+            <stop offset="0%" style="stop-color:#2563eb;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#60a5fa;stop-opacity:1" />
+        </linearGradient>
+        <linearGradient id="gradPurple" x1="0%" y1="100%" x2="0%" y2="0%">
+            <stop offset="0%" style="stop-color:#4f46e5;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#818cf8;stop-opacity:1" />
+        </linearGradient>
+        <linearGradient id="gradLightPurple" x1="0%" y1="100%" x2="0%" y2="0%">
+            <stop offset="0%" style="stop-color:#9333ea;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#c084fc;stop-opacity:1" />
+        </linearGradient>
+        <linearGradient id="gradTeal" x1="0%" y1="100%" x2="0%" y2="0%">
+            <stop offset="0%" style="stop-color:#0891b2;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#22d3ee;stop-opacity:1" />
+        </linearGradient>
+        <linearGradient id="gradGreen" x1="0%" y1="100%" x2="0%" y2="0%">
+            <stop offset="0%" style="stop-color:#059669;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#34d399;stop-opacity:1" />
+        </linearGradient>
+        <linearGradient id="gradOrange" x1="0%" y1="100%" x2="0%" y2="0%">
+            <stop offset="0%" style="stop-color:#ea580c;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#fb923c;stop-opacity:1" />
+        </linearGradient>
+    </defs>
+
+    <g transform="translate(10, 10)">
+        <rect x="0" y="190" width="200" height="6" rx="3" fill="white"/>
+
+        <path d="M12 190 V120 L42 100 V190 H12Z" fill="url(#gradBlue)"/>
+
+        <path d="M44 190 V98 L74 70 V190 H44Z" fill="url(#gradPurple)"/>
+
+        <path d="M76 190 V68 L106 40 V190 H76Z" fill="url(#gradLightPurple)"/>
+
+        <path d="M108 190 V40 L138 68 V190 H108Z" fill="url(#gradTeal)"/>
+
+        <path d="M140 190 V70 L170 98 V190 H140Z" fill="url(#gradGreen)"/>
+
+        <path d="M172 190 V60 H188 V190 H172Z" fill="url(#gradOrange)"/>
+    </g>
+</svg>

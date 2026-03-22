@@ -108,9 +108,7 @@ function MainLayout() {
             <header className="sticky top-0 z-10 bg-surface border-b border-border">
                 <div className="max-w-[1400px] mx-auto px-6 h-16 flex justify-between items-center">
                     <Link to="/" onClick={() => setViewMode('list')} className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-                            <span className="text-lg">🏠</span>
-                        </div>
+                        <img src="/logo.svg" alt="Logo" className="w-8 h-8 rounded-lg" />
                         <h1 className="text-lg font-semibold text-text-main tracking-tight">
                             {t('app_title')}
                         </h1>
