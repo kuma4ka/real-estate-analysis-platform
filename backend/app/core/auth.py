@@ -1,12 +1,12 @@
 import jwt
 from functools import wraps
 from flask import request, jsonify, g, current_app
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 def generate_token(user_id, role):
     payload = {
-        'exp': datetime.utcnow() + timedelta(days=1),
-        'iat': datetime.utcnow(),
+        'exp': datetime.now(timezone.utc) + timedelta(days=1),
+        'iat': datetime.now(timezone.utc),
         'sub': user_id,
         'role': role
     }

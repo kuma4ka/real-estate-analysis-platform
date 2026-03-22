@@ -1,5 +1,5 @@
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from flask import Blueprint, request, jsonify, g
 from app.models import User
 from app import db, limiter
@@ -74,12 +74,12 @@ def login():
     user = User.query.filter_by(email=validated_data['email']).first()
 
     if user:
-        if user.locked_until and user.locked_until > datetime.utcnow():
+        if user.locked_until and user.locked_until > datetime.now(timezone.utc):
             return jsonify({"message": "Account temporarily locked. Please try again later."}), 429
 
         if user.check_password(validated_data['password']):
             token = generate_token(user.id, user.role)
-            user.last_login = datetime.utcnow()
+            user.last_login = datetime.now(timezone.utc)
             user.failed_login_attempts = 0
             user.locked_until = None
             db.session.commit()
@@ -90,7 +90,7 @@ def login():
         else:
             user.failed_login_attempts += 1
             if user.failed_login_attempts >= 5:
-                user.locked_until = datetime.utcnow() + timedelta(minutes=15)
+                user.locked_until = datetime.now(timezone.utc) + timedelta(minutes=15)
             db.session.commit()
 
     return jsonify({"message": "Invalid email or password"}), 401
@@ -98,7 +98,7 @@ def login():
 @auth_bp.route('/me', methods=['GET'])
 @require_auth
 def get_me():
-    user = User.query.get(g.user_id)
+    user = db.session.get(User, g.user_id)
     if not user:
         return jsonify({"message": "User not found"}), 404
     return jsonify(user.to_dict()), 200
@@ -120,7 +120,7 @@ def change_password():
     except ValidationError as err:
         return jsonify({"message": "Validation error", "errors": err.messages}), 400
 
-    user = User.query.get(g.user_id)
+    user = db.session.get(User, g.user_id)
     if not user:
         return jsonify({"message": "User not found"}), 404
 
