@@ -1,0 +1,68 @@
+
+Warning: The allowCypressEnv configuration option is enabled. This allows any browser code to read values from Cypress.env(). This is insecure and will be removed in a future major version.
+
+1. Replace Cypress.env() calls with cy.env() (for sensitive values) or Cypress.expose() (for public configuration)
+2. Set allowCypressEnv: false in your Cypress configuration to disable Cypress.env()
+
+Learn more: https://on.cypress.io/cypress-env-migration
+
+
+====================================================================================================
+
+  (Run Starting)
+
+  ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ Cypress:        15.12.0                                                                        │
+  │ Browser:        Electron 138 (headless)                                                        │
+  │ Node Version:   v22.20.0 (C:\Program Files\nodejs\node.exe)                                    │
+  │ Specs:          1 found (uat_happy_paths.cy.ts)                                                │
+  │ Searched:       cypress/e2e/**/*.cy.{js,jsx,ts,tsx}                                            │
+  └────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+                                                                                                    
+  Running:  uat_happy_paths.cy.ts                                                           (1 of 1)
+
+
+  UAT Happy Paths (Practical Work 5)
+    √ TC_001: UAT_Register - Happy Path (5263ms)
+    √ TC_002: UAT_Login - Valid credentials opens protected UI (1599ms)
+    √ TC_003: UAT_PropList - Pagination and List view (499ms)
+    √ TC_004: UAT_PropFilter - Kyiv, price < 50000 (600ms)
+    √ TC_005: UAT_PropDetail - Click property card details (310ms)
+    √ TC_006: UAT_RoleAn - Analyst session and linear regression graphs (1409ms)
+    √ TC_007: UAT_RoleAd - Admin session System Metrics (1303ms)
+    √ TC_008: UAT_Export - Export PDF functionality (1682ms)
+    √ TC_011: UAT_Perfomance - Loading Map heavy DOM < 2s (636ms)
+
+
+  9 passing (14s)
+
+
+  (Results)
+
+  ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ Tests:        9                                                                                │
+  │ Passing:      9                                                                                │
+  │ Failing:      0                                                                                │
+  │ Pending:      0                                                                                │
+  │ Skipped:      0                                                                                │
+  │ Screenshots:  0                                                                                │
+  │ Video:        false                                                                            │
+  │ Duration:     13 seconds                                                                       │
+  │ Spec Ran:     uat_happy_paths.cy.ts                                                            │
+  └────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+
+====================================================================================================
+
+  (Run Finished)
+
+
+       Spec                                              Tests  Passing  Failing  Pending  Skipped  
+  ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ ✔  uat_happy_paths.cy.ts                    00:13        9        9        -        -        - │
+  └────────────────────────────────────────────────────────────────────────────────────────────────┘
+    ✔  All specs passed!                        00:13        9        9        -        -        -  
+
