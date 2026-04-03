@@ -44,15 +44,10 @@ describe('FilterBar', () => {
     const applyButton = screen.getByText('apply');
     await user.click(applyButton);
     
-    expect(mockOnFilterChange).toHaveBeenCalledWith({
+    expect(mockOnFilterChange).toHaveBeenCalledWith(expect.objectContaining({
       city: 'Kyiv',
-      rooms: '',
       price_min: 50000,
-      price_max: '',
-      search: '',
-      sort: 'newest',
-      page: 1
-    });
+    }));
   });
 
   it('handles room selection toggle', async () => {

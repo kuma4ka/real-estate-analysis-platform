@@ -229,3 +229,35 @@ describe('fetchForecast', () => {
     expect(result.r_squared).toBe(0.9);
   });
 });
+
+// ─── downloadStatsCsv ──────────────────────────────────────────────────────
+
+describe('downloadStatsCsv', async () => {
+  const { downloadStatsCsv } = await import('../api');
+
+  it('calls the correct /stats/export endpoint', async () => {
+    const fetchMock = mockFetch(new Blob(['csv,data']), true, 200);
+    vi.stubGlobal('fetch', fetchMock);
+
+    vi.stubGlobal('URL', {
+      createObjectURL: vi.fn().mockReturnValue('blob:test'),
+      revokeObjectURL: vi.fn(),
+    });
+
+    const mockAnchor = { href: '', download: '', click: vi.fn(), style: { display: '' } };
+    const createElementSpy = vi.spyOn(document, 'createElement').mockReturnValue(mockAnchor as unknown as HTMLAnchorElement);
+    vi.spyOn(document.body, 'appendChild').mockImplementation(() => document.body);
+
+    await downloadStatsCsv();
+
+    expect(fetchMock.mock.calls[0][0]).toContain('/api/v1/stats/export');
+    expect(mockAnchor.click).toHaveBeenCalled();
+    createElementSpy.mockRestore();
+  });
+
+  it('throws when export endpoint returns non-ok', async () => {
+    vi.stubGlobal('fetch', mockFetch({}, false, 403));
+    await expect(downloadStatsCsv()).rejects.toThrow();
+  });
+});
+
