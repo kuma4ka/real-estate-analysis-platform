@@ -17,7 +17,6 @@ def client():
 
 @pytest.fixture
 def seeded_client(client):
-    """Client with two properties, one with coordinates and one without."""
     with client.application.app_context():
         p1 = Property(
             title='Квартира з координатами',
@@ -53,7 +52,6 @@ class TestMapEndpoint:
         data = resp.get_json()
         assert 'data' in data
         assert 'count' in data
-        # Only p1 has coordinates
         assert data['count'] == 1
         assert data['data'][0]['city'] == 'Київ'
 
@@ -119,13 +117,13 @@ class TestPropertiesEndpoint:
         assert len(data) == 1
         assert data[0]['price'] == 50_000
 
-    def test_properties_filter_search(self, seeded_client):
-        # Both "Квартира з координатами" and "Квартира без координат" match "координат"
+    def test_properties_filter_search_matches_title(self, seeded_client):
+        resp = seeded_client.get('/api/v1/properties?search=без')
+        data = resp.get_json()['data']
+        assert len(data) == 1
+        assert data[0]['title'] == 'Квартира без координат'
+
+    def test_properties_filter_search_matches_multiple(self, seeded_client):
         resp = seeded_client.get('/api/v1/properties?search=координат')
         data = resp.get_json()['data']
         assert len(data) == 2
-
-        resp2 = seeded_client.get('/api/v1/properties?search=без')
-        data2 = resp2.get_json()['data']
-        assert len(data2) == 1
-        assert data2[0]['title'] == 'Квартира без координат'

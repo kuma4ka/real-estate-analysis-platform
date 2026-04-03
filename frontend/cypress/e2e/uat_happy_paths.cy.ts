@@ -1,11 +1,12 @@
 /// <reference types="cypress" />
 
 describe('UAT Happy Paths (Practical Work 5)', () => {
-  const mockUser = { id: 1, email: 'user@test.com', role: 'User' };
-  const mockAnalyst = { id: 2, email: 'analyst@test.com', role: 'Analyst' };
-  const mockAdmin = { id: 3, email: 'admin@test.com', role: 'Admin' };
+  interface MockUser { id: number; email: string; role: string; }
 
-  // A dummy JWT that jwt-decode can parse. exp = 2000000000 (year 2033)
+  const mockUser: MockUser = { id: 1, email: 'user@test.com', role: 'User' };
+  const mockAnalyst: MockUser = { id: 2, email: 'analyst@test.com', role: 'Analyst' };
+  const mockAdmin: MockUser = { id: 3, email: 'admin@test.com', role: 'Admin' };
+
   const validMockToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjIwMDAwMDAwMDB9.signature';
 
   const mockProperties = {
@@ -20,7 +21,7 @@ describe('UAT Happy Paths (Practical Work 5)', () => {
     meta: { total_items: 1, total_pages: 1, current_page: 1, per_page: 12 }
   };
 
-  const loginAs = (mockData: any) => {
+  const loginAs = (mockData: MockUser) => {
     cy.intercept('POST', '**/api/v1/auth/login', { statusCode: 200, body: { token: validMockToken, user: mockData } }).as('mockLogin');
     cy.intercept('GET', '**/api/v1/auth/me', { statusCode: 200, body: mockData }).as('mockMe');
     cy.visit('/login');
@@ -138,8 +139,8 @@ describe('UAT Happy Paths (Practical Work 5)', () => {
     cy.intercept('GET', '**/api/v1/stats*', { statusCode: 200, body: { total_active: 5, avg_price: 1, avg_area: 1, by_city: [], by_rooms: [], by_price_ranges: [], recent_trend: [] } });
     cy.intercept('GET', '**/api/v1/stats/forecast*', { statusCode: 200, body: { error: 'data' } });
 
-    cy.contains('button', 'Analytics', { timeout: 10000 }).should('be.visible').click();
     cy.window().then((win) => { cy.stub(win.URL, 'createObjectURL').as('pdfDownload'); });
+    cy.contains('button', 'Analytics', { timeout: 10000 }).should('be.visible').click();
     cy.contains('button', 'Download PDF', { matchCase: false }).click();
   });
 

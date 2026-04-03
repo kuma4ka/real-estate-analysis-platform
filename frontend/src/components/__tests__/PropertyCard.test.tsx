@@ -4,19 +4,18 @@ import PropertyCard from '../PropertyCard';
 import { describe, expect, it, vi } from 'vitest';
 import type { Property } from '../../types/property';
 
-// Mock react-i18next
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string) => key,
+    t: (key: string, fallback?: string) => fallback ?? key,
   }),
 }));
 
-// Mock useAuth
 vi.mock('../../context/AuthContext', () => ({
-  useAuth: () => ({
-    user: { id: 1, email: 'test@test.com', role: 'User' }
-  })
+  useAuth: vi.fn(),
 }));
+
+import { useAuth } from '../../context/AuthContext';
+const mockUseAuth = vi.mocked(useAuth);
 
 const mockProperty: Property = {
   id: 1,
@@ -35,66 +34,60 @@ const mockProperty: Property = {
   source_url: 'http://test.com',
   created_at: '2023-01-01T00:00:00Z',
   lat: 50.45,
-  lng: 30.52
+  lng: 30.52,
 };
+
+function renderCard(property = mockProperty, user: { id: number; email: string; role: string } | null = { id: 1, email: 'test@test.com', role: 'User' }) {
+  mockUseAuth.mockReturnValue({ user, token: user ? 'tok' : null, isLoading: false, login: vi.fn(), logout: vi.fn() } as ReturnType<typeof useAuth>);
+  return render(
+    <MemoryRouter>
+      <PropertyCard property={property} />
+    </MemoryRouter>
+  );
+}
 
 describe('PropertyCard', () => {
   it('renders property title and address', () => {
-    render(
-      <MemoryRouter>
-        <PropertyCard property={mockProperty} />
-      </MemoryRouter>
-    );
-    
+    renderCard();
     expect(screen.getByText('Test Apartment')).toBeInTheDocument();
     expect(screen.getByText('123 Test St')).toBeInTheDocument();
   });
 
   it('renders formatted price', () => {
-    render(
-      <MemoryRouter>
-        <PropertyCard property={mockProperty} />
-      </MemoryRouter>
-    );
-    
-    // 50 000 US$ or similar formatting based on locale
-    // We can check if the basic number sequence is there
-    const priceElement = screen.getByText(/50/);
-    expect(priceElement).toBeInTheDocument();
+    renderCard();
+    expect(screen.getByText(/50/)).toBeInTheDocument();
   });
 
   it('renders fallback when no images provided', () => {
-    const noImageProperty = { ...mockProperty, images: [] };
-    const { container } = render(
-      <MemoryRouter>
-        <PropertyCard property={noImageProperty} />
-      </MemoryRouter>
-    );
-    
-    // Should not render an img tag
+    const { container } = renderCard({ ...mockProperty, images: [] });
     expect(container.querySelector('img')).not.toBeInTheDocument();
   });
 
   it('renders image when provided', () => {
-    render(
-      <MemoryRouter>
-        <PropertyCard property={mockProperty} />
-      </MemoryRouter>
-    );
-    
+    renderCard();
     const img = screen.getByRole('img');
     expect(img).toHaveAttribute('src', '/test-image.jpg');
     expect(img).toHaveAttribute('alt', 'Test Apartment');
   });
 
   it('displays rooms and area', () => {
-    render(
-      <MemoryRouter>
-        <PropertyCard property={mockProperty} />
-      </MemoryRouter>
-    );
-    
-    expect(screen.getByText(/2\s*rooms/)).toBeInTheDocument();
-    expect(screen.getByText(/45\s*area_unit/)).toBeInTheDocument();
+    renderCard();
+    expect(screen.getByText(/2\s*rooms/i)).toBeInTheDocument();
+    expect(screen.getByText(/45\s*area_unit/i)).toBeInTheDocument();
+  });
+
+  it('shows guest banner when user is not logged in', () => {
+    renderCard(mockProperty, null);
+    expect(screen.getByText('Sign in to view contacts')).toBeInTheDocument();
+  });
+
+  it('does not show guest banner when user is logged in', () => {
+    renderCard();
+    expect(screen.queryByText('Sign in to view contacts')).not.toBeInTheDocument();
+  });
+
+  it('shows city when address is null', () => {
+    renderCard({ ...mockProperty, address: null });
+    expect(screen.getByText('Test City')).toBeInTheDocument();
   });
 });

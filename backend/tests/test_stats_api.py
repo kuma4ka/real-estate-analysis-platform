@@ -8,7 +8,7 @@ Covers:
   TC_027 – GET /api/v1/stats/forecast (price forecast endpoint)
 """
 import pytest
-from datetime import date, timedelta
+from datetime import timedelta
 from app import create_app, db
 from app.models import User, Property
 from config import TestConfig
@@ -151,11 +151,19 @@ class TestStatsEndpoint:
         resp = client.get("/api/v1/stats", headers=_auth_headers(token))
         data = resp.get_json()
         assert len(data["recent_trend"]) >= 3
-        # Each entry must have required keys
         for entry in data["recent_trend"]:
             assert "month" in entry
             assert "count" in entry
             assert "avg_price" in entry
+
+    def test_stats_avg_price_per_m2_in_response(self, client):
+        """avg_price_per_m2 field must be present in stats response."""
+        token = _register_and_login(client, "analyst7@example.com", role="Analyst")
+        _seed_properties(client, count=3)
+        resp = client.get("/api/v1/stats", headers=_auth_headers(token))
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert "avg_price_per_m2" in data
 
 
 # ─────────────────────────────────────────────────────────
