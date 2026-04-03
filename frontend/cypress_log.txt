@@ -26,18 +26,18 @@ Learn more: https://on.cypress.io/cypress-env-migration
 
 
   UAT Happy Paths (Practical Work 5)
-    √ TC_001: UAT_Register - Happy Path (5263ms)
-    √ TC_002: UAT_Login - Valid credentials opens protected UI (1599ms)
-    √ TC_003: UAT_PropList - Pagination and List view (499ms)
-    √ TC_004: UAT_PropFilter - Kyiv, price < 50000 (600ms)
-    √ TC_005: UAT_PropDetail - Click property card details (310ms)
-    √ TC_006: UAT_RoleAn - Analyst session and linear regression graphs (1409ms)
-    √ TC_007: UAT_RoleAd - Admin session System Metrics (1303ms)
-    √ TC_008: UAT_Export - Export PDF functionality (1682ms)
-    √ TC_011: UAT_Perfomance - Loading Map heavy DOM < 2s (636ms)
+    √ TC_001: UAT_Register - Happy Path (5729ms)
+    √ TC_002: UAT_Login - Valid credentials opens protected UI (1712ms)
+    √ TC_003: UAT_PropList - Pagination and List view (779ms)
+    √ TC_004: UAT_PropFilter - Kyiv, price < 50000 (914ms)
+    √ TC_005: UAT_PropDetail - Click property card details (594ms)
+    √ TC_006: UAT_RoleAn - Analyst session and linear regression graphs (2369ms)
+    √ TC_007: UAT_RoleAd - Admin session System Metrics (2092ms)
+    √ TC_008: UAT_Export - Export PDF functionality (2612ms)
+    √ TC_011: UAT_Perfomance - Loading Map heavy DOM < 2s (1317ms)
 
 
-  9 passing (14s)
+  9 passing (19s)
 
 
   (Results)
@@ -50,7 +50,7 @@ Learn more: https://on.cypress.io/cypress-env-migration
   │ Skipped:      0                                                                                │
   │ Screenshots:  0                                                                                │
   │ Video:        false                                                                            │
-  │ Duration:     13 seconds                                                                       │
+  │ Duration:     18 seconds                                                                       │
   │ Spec Ran:     uat_happy_paths.cy.ts                                                            │
   └────────────────────────────────────────────────────────────────────────────────────────────────┘
 
@@ -62,7 +62,7 @@ Learn more: https://on.cypress.io/cypress-env-migration
 
        Spec                                              Tests  Passing  Failing  Pending  Skipped  
   ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
-  │ ✔  uat_happy_paths.cy.ts                    00:13        9        9        -        -        - │
+  │ ✔  uat_happy_paths.cy.ts                    00:18        9        9        -        -        - │
   └────────────────────────────────────────────────────────────────────────────────────────────────┘
-    ✔  All specs passed!                        00:13        9        9        -        -        -  
+    ✔  All specs passed!                        00:18        9        9        -        -        -  
 
