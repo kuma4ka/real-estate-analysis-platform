@@ -111,14 +111,14 @@
 │                        DOCKER COMPOSE                           │
 │                                                                 │
 │  ┌──────────────┐    ┌──────────────┐    ┌──────────────────┐   │
-│  │   Frontend   │    │   Backend    │    │    PostgreSQL     │   │
-│  │  React/Vite  │◄──►│  Flask API   │◄──►│      DB :5432     │  │
+│  │   Frontend   │    │   Backend    │    │    PostgreSQL    │   │
+│  │  React/Vite  │◄──►│  Flask API   │◄──►│      DB :5432    │   │
 │  │  Nginx :3000 │    │   :5000      │    │                  │   │
 │  └──────────────┘    └──────┬───────┘    └──────────────────┘   │
-│                             │                                    │
+│                             │                                   │
 │                      ┌──────▼───────┐                           │
-│                      │  Cron Worker  │                          │
-│                      │ (Auto-scraper) │                         │
+│                      │ Cron Worker  │                           │
+│                      │(Auto-scraper)│                           │
 │                      └──────────────┘                           │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -207,7 +207,7 @@ docker compose exec backend flask seed-users
 
 ---
 
-## 💻 Локальний розвиток
+## 💻 Локальний запуск
 
 ### Передумови
 
@@ -272,7 +272,7 @@ Frontend буде доступний за адресою: http://localhost:5173
 | `FLASK_APP` | Entry point Flask | `run.py` |
 | `FLASK_DEBUG` | Режим налагодження (0/1) | `0` (prod), `1` (dev) |
 
-> ⚠️ **Ніколи не комітьте `.env` файл!** Він вже додано до `.gitignore`.
+> ⚠️ **Ніколи не комітьте `.env` файл!** Він вже доданий до `.gitignore`.
 
 ---
 
