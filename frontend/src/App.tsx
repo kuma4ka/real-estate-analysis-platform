@@ -232,18 +232,14 @@ function MainLayout() {
                         </div>
 
                         {/* Sidebar + Cards Layout */}
-                        <div className="flex gap-6">
-                            {/* Sidebar Filters */}
-                            <aside className="w-[260px] flex-shrink-0 hidden lg:block">
+                        <div className="flex flex-col lg:flex-row gap-6">
+                            {/* FilterBar: full-width on mobile, fixed sidebar on desktop */}
+                            <aside className="w-full lg:w-[260px] lg:flex-shrink-0">
                                 <FilterBar onFilterChange={handleFilterChange} />
                             </aside>
 
                             {/* Cards Area */}
                             <div className="flex-grow min-w-0">
-                                {/* Mobile Filters */}
-                                <div className="lg:hidden mb-4">
-                                    <FilterBar onFilterChange={handleFilterChange} />
-                                </div>
 
                                 {loading ? (
                                     <div className="flex justify-center items-center py-20">
