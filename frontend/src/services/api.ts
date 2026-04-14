@@ -62,7 +62,6 @@ export interface StatsData {
     by_city: { city: string; count: number; avg_price: number; avg_price_per_m2: number }[];
     by_rooms: { rooms: number; count: number; avg_price: number }[];
     by_price_ranges: { range: string; count: number }[];
-    price_histogram: { range: string; count: number }[];
     recent_trend: { month: string; count: number; avg_price: number; price_change_pct: number | null }[];
 }
 

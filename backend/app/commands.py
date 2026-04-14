@@ -1,6 +1,6 @@
 import click
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask.cli import with_appcontext
 from app import db, create_app
@@ -169,14 +169,11 @@ def process_url_in_thread(url, app_config, scrape_func):
                     needs_update = True
 
                 if data.get('address') and existing_prop.address != data['address']:
-                    print(f"DEBUG: Updating address from '{existing_prop.address}' to '{data['address']}'")
                     existing_prop.address = data['address']
                     existing_prop.city = data.get('city')
                     existing_prop.district = data.get('district')
                     changes.append("address")
                     needs_update = True
-                else:
-                    print(f"DEBUG: Skipping UPDATE string check. DB address: {existing_prop.address} | New: {data.get('address')}")
                     
                 # Force a new geocode attempt for the new address
                 if "address" in changes:
@@ -217,9 +214,8 @@ def process_url_in_thread(url, app_config, scrape_func):
                 if needs_update:
                     if not is_valid:
                         changes.append(f"flagged: {rejection_reason}")
-                    
-                    print(f"DEBUG: Committing to DB. needs_update={needs_update}, is_valid={is_valid}, changes={changes}, new address={existing_prop.address}")
-                    existing_prop.updated_at = datetime.utcnow()
+
+                    existing_prop.updated_at = datetime.now(timezone.utc)
                     db.session.commit()
                     
                     if not is_valid:
