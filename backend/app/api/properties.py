@@ -23,10 +23,10 @@ def _resolve_city_alias(name):
 
 def _is_authenticated() -> bool:
     """Return True if the request carries a valid JWT Bearer token."""
+    from app.core.auth import decode_token
     auth_header = request.headers.get('Authorization', '')
     parts = auth_header.split(' ')
     if len(parts) > 1:
-        from app.core.auth import decode_token
         return not isinstance(decode_token(parts[1]), str)
     return False
 
