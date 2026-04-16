@@ -38,11 +38,11 @@ def create_app(config_class=Config):
     from app.api.admin import admin_bp
     app.register_blueprint(admin_bp, url_prefix='/api/v1/admin')
 
-    from app.commands import (
-        scrape_meget_command, 
-        scrape_bon_ua_command, 
-        regeocode_all_command, 
-        regeocode_ids_command, 
+    from app.cli import (
+        scrape_meget_command,
+        scrape_bon_ua_command,
+        regeocode_all_command,
+        regeocode_ids_command,
         backfill_images,
         convert_currencies_command,
         rescrape_duplicates_command,
