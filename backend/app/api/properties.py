@@ -21,6 +21,16 @@ def _resolve_city_alias(name):
     return name
 
 
+def _is_authenticated() -> bool:
+    """Return True if the request carries a valid JWT Bearer token."""
+    from app.core.auth import decode_token
+    auth_header = request.headers.get('Authorization', '')
+    parts = auth_header.split(' ')
+    if len(parts) > 1:
+        return not isinstance(decode_token(parts[1]), str)
+    return False
+
+
 @bp.route('/health', methods=['GET'])
 def health_check():
     return jsonify({'status': 'ok', 'service': 'real-estate-backend'})
@@ -71,23 +81,11 @@ def get_properties():
         query = query.order_by(desc(Property.created_at))
 
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
-
     data = properties_schema.dump(pagination.items)
 
-    # Check optional authentication (RBAC: Guests get limited data)
-    auth_header = request.headers.get('Authorization')
-    is_authenticated = False
-    if auth_header:
-        parts = auth_header.split(" ")
-        if len(parts) > 1:
-            from app.core.auth import decode_token
-            resp = decode_token(parts[1])
-            if not isinstance(resp, str):
-                is_authenticated = True
-    
-    if not is_authenticated:
+    if not _is_authenticated():
         for item in data:
-            item['source_url'] = None  # Hide original listing link from Guests
+            item['source_url'] = None
 
     return jsonify({
         'data': data,
@@ -107,17 +105,7 @@ def get_property(id):
         abort(404)
     data = property_schema.dump(prop)
 
-    auth_header = request.headers.get('Authorization')
-    is_authenticated = False
-    if auth_header:
-        parts = auth_header.split(" ")
-        if len(parts) > 1:
-            from app.core.auth import decode_token
-            resp = decode_token(parts[1])
-            if not isinstance(resp, str):
-                is_authenticated = True
-                
-    if not is_authenticated:
+    if not _is_authenticated():
         data['source_url'] = None
 
     return jsonify(data)
@@ -169,17 +157,7 @@ def get_map_properties():
         'created_at': p.created_at.isoformat() if p.created_at else None
     } for p in properties]
 
-    auth_header = request.headers.get('Authorization')
-    is_authenticated = False
-    if auth_header:
-        parts = auth_header.split(' ')
-        if len(parts) > 1:
-            from app.core.auth import decode_token
-            resp = decode_token(parts[1])
-            if not isinstance(resp, str):
-                is_authenticated = True
-
-    if not is_authenticated:
+    if not _is_authenticated():
         for item in data:
             item['source_url'] = None
 
