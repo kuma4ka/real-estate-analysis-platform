@@ -10,7 +10,6 @@ interface ChartRefs {
 
 type TFunction = (key: string, fallback?: string) => string;
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
 
 const formatPrice = (value: number) => {
     if (value >= 1000) return `$${(value / 1000).toFixed(0)}k`;
@@ -35,7 +34,6 @@ const captureElement = async (
     }
 };
 
-// ─── Main export function ────────────────────────────────────────────────────
 
 export async function exportAnalyticsPdf(
     stats: StatsData,
@@ -56,18 +54,15 @@ export async function exportAnalyticsPdf(
     const contentW = pageW - margin * 2;
     let y = margin;
 
-    // ── Color palette ──────────────────────────────────────────────────────
     const PRIMARY = [91, 192, 196] as [number, number, number];     // #5bc0c4
     const SURFACE = isDark ? [30, 36, 50] as [number, number, number] : [248, 250, 252] as [number, number, number];
     const TEXT    = isDark ? [220, 220, 230] as [number, number, number] : [30, 30, 40] as [number, number, number];
     const MUTED   = isDark ? [130, 140, 160] as [number, number, number] : [100, 110, 130] as [number, number, number];
     const BG      = isDark ? [15, 17, 23] as [number, number, number] : [255, 255, 255] as [number, number, number];
 
-    // ── Background ─────────────────────────────────────────────────────────
     doc.setFillColor(...BG);
     doc.rect(0, 0, pageW, doc.internal.pageSize.getHeight(), 'F');
 
-    // ── Header bar ─────────────────────────────────────────────────────────
     doc.setFillColor(...PRIMARY);
     doc.rect(0, 0, pageW, 60, 'F');
 
@@ -85,7 +80,6 @@ export async function exportAnalyticsPdf(
 
     y = 80;
 
-    // ── Section title helper ───────────────────────────────────────────────
     const sectionTitle = (title: string) => {
         doc.setDrawColor(...PRIMARY);
         doc.setLineWidth(2);
@@ -103,7 +97,6 @@ export async function exportAnalyticsPdf(
         (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
 
 
-    // ── 1. Summary Cards ────────────────────────────────────────────────────
     sectionTitle(t('view_analytics', 'Analytics Overview'));
 
     const summaryData = [
@@ -134,7 +127,6 @@ export async function exportAnalyticsPdf(
     });
     y = getTableFinalY() + 24;
 
-    // ── 2. Chart: By Rooms (Donut) ─────────────────────────────────────────
     // Wait for charts to settle (React re-render with isAnimationActive=false)
     await new Promise(resolve => setTimeout(resolve, 400));
 
@@ -149,7 +141,7 @@ export async function exportAnalyticsPdf(
         }
     }
 
-    // ── 3. City breakdown ───────────────────────────────────────────────────
+    if (y + 80 > doc.internal.pageSize.getHeight() - margin) { doc.addPage(); y = margin; }
     if (y + 80 > doc.internal.pageSize.getHeight() - margin) { doc.addPage(); y = margin; }
     sectionTitle(t('analytics_city_metrics', 'By City'));
 
@@ -188,7 +180,7 @@ export async function exportAnalyticsPdf(
     });
     y = getTableFinalY() + 24;
 
-    // ── 4. Price Range Distribution ─────────────────────────────────────────
+    if (y + 80 > doc.internal.pageSize.getHeight() - margin) { doc.addPage(); y = margin; }
     if (y + 80 > doc.internal.pageSize.getHeight() - margin) { doc.addPage(); y = margin; }
     sectionTitle(t('analytics_price_dist', 'Price Distribution'));
 
@@ -214,7 +206,7 @@ export async function exportAnalyticsPdf(
     });
     y = getTableFinalY() + 24;
 
-    // ── 5. By Rooms — data table ─────────────────────────────────────────────
+    if (y + 80 > doc.internal.pageSize.getHeight() - margin) { doc.addPage(); y = margin; }
     if (y + 80 > doc.internal.pageSize.getHeight() - margin) { doc.addPage(); y = margin; }
     sectionTitle(t('analytics_by_rooms', 'By Rooms'));
 
@@ -234,7 +226,6 @@ export async function exportAnalyticsPdf(
     });
     y = getTableFinalY() + 24;
 
-    // ── 6. Trend chart ────────────────────────────────────────────────────────
     if (refs.trendRef) {
         if (y + 80 > doc.internal.pageSize.getHeight() - margin) { doc.addPage(); y = margin; }
         sectionTitle(t('analytics_trend', 'Recent Trend'));
@@ -248,7 +239,6 @@ export async function exportAnalyticsPdf(
         }
     }
 
-    // ── Recent trend table ─────────────────────────────────────────────────
     if (stats.recent_trend.length > 0) {
         if (y + 80 > doc.internal.pageSize.getHeight() - margin) { doc.addPage(); y = margin; }
 
@@ -271,7 +261,6 @@ export async function exportAnalyticsPdf(
         });
     }
 
-    // ── 7. Price Forecast chart ───────────────────────────────────────────────
     if (refs.forecastRef) {
         if (y + 80 > doc.internal.pageSize.getHeight() - margin) { doc.addPage(); y = margin; }
         sectionTitle(t('analytics_forecast_title', 'Price Forecast'));
@@ -288,7 +277,6 @@ export async function exportAnalyticsPdf(
         }
     }
 
-    // ── Footer on each page ────────────────────────────────────────────────
     const totalPages = (doc as unknown as { internal: { getNumberOfPages(): number } }).internal.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
         doc.setPage(i);
@@ -303,7 +291,6 @@ export async function exportAnalyticsPdf(
         doc.text(`${i} / ${totalPages}`, pageW - margin, pageH - 16, { align: 'right' });
     }
 
-    // ── Save ───────────────────────────────────────────────────────────────
     const date = new Date().toISOString().slice(0, 10);
     doc.save(`analytics-${date}.pdf`);
 }

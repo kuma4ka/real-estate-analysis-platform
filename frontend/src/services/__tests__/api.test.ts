@@ -15,7 +15,6 @@ import {
   fetchForecast,
 } from '../api';
 
-// ─── Mock fetch globally ────────────────────────────────────────────────────
 
 function mockFetch(body: unknown, ok = true, status = 200) {
   return vi.fn().mockResolvedValue({
@@ -36,7 +35,6 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-// ─── fetchWithAuth ─────────────────────────────────────────────────────────
 
 describe('fetchWithAuth', () => {
   it('includes Bearer token from localStorage when present', async () => {
@@ -61,7 +59,6 @@ describe('fetchWithAuth', () => {
   });
 });
 
-// ─── fetchProperties ────────────────────────────────────────────────────────
 
 describe('fetchProperties', () => {
   it('builds URL with city and page params correctly', async () => {
@@ -137,7 +134,6 @@ describe('fetchProperties', () => {
   });
 });
 
-// ─── fetchAllPropertiesForMap ────────────────────────────────────────────────
 
 describe('fetchAllPropertiesForMap', () => {
   it('calls the correct /map endpoint', async () => {
@@ -164,7 +160,6 @@ describe('fetchAllPropertiesForMap', () => {
   });
 });
 
-// ─── fetchStats ─────────────────────────────────────────────────────────────
 
 describe('fetchStats', () => {
   it('calls /api/v1/stats endpoint', async () => {
@@ -182,7 +177,6 @@ describe('fetchStats', () => {
   });
 });
 
-// ─── fetchForecast ──────────────────────────────────────────────────────────
 
 describe('fetchForecast', () => {
   it('calls /api/v1/stats/forecast without city param when not provided', async () => {
@@ -230,7 +224,6 @@ describe('fetchForecast', () => {
   });
 });
 
-// ─── downloadStatsCsv ──────────────────────────────────────────────────────
 
 describe('downloadStatsCsv', async () => {
   const { downloadStatsCsv } = await import('../api');

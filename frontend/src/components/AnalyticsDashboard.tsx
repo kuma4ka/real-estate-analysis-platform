@@ -146,7 +146,7 @@ const AnalyticsDashboard: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            {/* Page Title + Export Button */}
+
             <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-text-main">
                     {t('view_analytics')}
@@ -187,7 +187,7 @@ const AnalyticsDashboard: React.FC = () => {
                 )}
             </div>
 
-            {/* Error Toast */}
+
             {exportError && (
                 <div className="flex items-center gap-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-lg px-4 py-3 text-sm">
                     <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -202,7 +202,7 @@ const AnalyticsDashboard: React.FC = () => {
                 </div>
             )}
 
-            {/* Summary Cards */}
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {summaryCards.map((card, i) => (
                     <div key={i} className="bg-surface rounded-xl border border-border p-5 shadow-card">
@@ -212,9 +212,9 @@ const AnalyticsDashboard: React.FC = () => {
                 ))}
             </div>
 
-            {/* Charts Row 1: Donut + City Bar */}
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                {/* By Rooms — Donut */}
+
                 <div ref={roomsRef} className="bg-surface rounded-xl border border-border p-5 shadow-card">
                     <h3 className="text-sm font-semibold text-text-main mb-4">{t('analytics_by_rooms')}</h3>
                     <ResponsiveContainer width="100%" height={280}>
@@ -258,7 +258,7 @@ const AnalyticsDashboard: React.FC = () => {
                     </ResponsiveContainer>
                 </div>
 
-                {/* Avg Price by City Chart */}
+
                 <div ref={cityRef} className="bg-surface p-6 rounded-xl border border-border flex flex-col h-full">
                     <div className="flex justify-between items-center mb-6">
                         <h3 className="text-lg font-semibold text-text-main">{t('analytics_city_metrics')}</h3>
@@ -316,9 +316,9 @@ const AnalyticsDashboard: React.FC = () => {
                 </div>
             </div>
 
-            {/* Charts Row 2: Price Distribution + Status */}
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                {/* Price Ranges Distribution */}
+
                 <div ref={priceDistRef} className="bg-surface p-6 rounded-xl border border-border shadow-sm flex flex-col h-full">
                     <h3 className="text-lg font-semibold text-text-main mb-6">{t('analytics_price_dist')}</h3>
                     <div className="flex-grow min-h-[420px] flex items-center justify-center">
@@ -349,7 +349,7 @@ const AnalyticsDashboard: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Status Distribution */}
+
                 <div className="bg-surface p-6 rounded-xl border border-border shadow-sm flex flex-col h-full">
                     <h3 className="text-lg font-semibold text-text-main mb-6">{t('analytics_status_dist')}</h3>
                     <div className="flex-grow min-h-[300px] flex items-center justify-center">
@@ -385,7 +385,7 @@ const AnalyticsDashboard: React.FC = () => {
                 </div>
             </div>
 
-            {/* Charts Row 3: Recent Trend (Full width) */}
+
             <div ref={trendRef} className="bg-surface rounded-xl border border-border p-5 shadow-card">
                 <h3 className="text-sm font-semibold text-text-main mb-4">{t('analytics_trend')}</h3>
                 <ResponsiveContainer width="100%" height={280}>
@@ -441,12 +441,12 @@ const AnalyticsDashboard: React.FC = () => {
                 </ResponsiveContainer>
             </div>
 
-            {/* Price Forecast — full width */}
+
             <div ref={forecastRef}>
                 <PriceForecastChart isExporting={isExporting} />
             </div>
 
-            {/* 4+ Drilldown Modal */}
+
             {drilldownOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
                     <div className="bg-surface rounded-xl border border-border p-6 max-w-md w-full shadow-2xl">

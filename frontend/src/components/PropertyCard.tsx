@@ -34,7 +34,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property }) => {
             {...wrapperProps}
             className={`bg-surface rounded-xl shadow-card hover:shadow-card-hover transition-all duration-300 overflow-hidden border border-border flex flex-col h-full group relative ${isGuest ? 'cursor-pointer hover:ring-2 hover:ring-primary/50' : ''}`}
         >
-            {/* Image */}
+
             <div className="h-44 bg-background relative overflow-hidden">
                 {imageUrl ? (
                     <img
@@ -58,7 +58,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property }) => {
                 )}
             </div>
 
-            {/* Content */}
+
             <div className="p-4 flex flex-col flex-grow">
                 <h3 className="text-base font-bold text-text-main line-clamp-2 leading-snug mb-2" title={property.title}>
                     {property.title}
