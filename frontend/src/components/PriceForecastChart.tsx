@@ -77,7 +77,7 @@ const PriceForecastChart: React.FC<Props> = ({ isExporting = false }) => {
     const hasDataError = error || forecast?.error;
     const hasData = !hasDataError && forecast && forecast.historical.length > 0 && forecast.forecast.length > 0;
 
-    // ── Build unified dataset ──────────────────────────────────────────────
+
     type ChartPoint = {
         date: string;
         actual?: number;
@@ -132,7 +132,7 @@ const PriceForecastChart: React.FC<Props> = ({ isExporting = false }) => {
 
     return (
         <div className="bg-surface rounded-xl border border-border p-5 shadow-card">
-            {/* Header */}
+
             <div className="flex items-start justify-between mb-4 flex-wrap gap-4">
                 <div>
                      <h3 className="text-sm font-semibold text-text-main pb-1">
@@ -154,7 +154,7 @@ const PriceForecastChart: React.FC<Props> = ({ isExporting = false }) => {
                     </div>
                 </div>
 
-                {/* Stats badges */}
+
                 {hasData && forecast && (
                     <div className="flex items-center gap-3 text-xs font-mono">
                         <div className="flex flex-col items-end">
@@ -233,7 +233,7 @@ const PriceForecastChart: React.FC<Props> = ({ isExporting = false }) => {
                         }}
                     />
 
-                    {/* Confidence band (lower → upper) */}
+
                     <Area
                         type="monotone"
                         dataKey="lower"
@@ -261,7 +261,7 @@ const PriceForecastChart: React.FC<Props> = ({ isExporting = false }) => {
                         baseValue="dataMin"
                     />
 
-                    {/* Actual historical line */}
+
                     <Line
                         type="monotone"
                         dataKey="actual"
@@ -274,7 +274,7 @@ const PriceForecastChart: React.FC<Props> = ({ isExporting = false }) => {
                         isAnimationActive={!isExporting}
                     />
 
-                    {/* Forecast dashed line */}
+
                     <Line
                         type="monotone"
                         dataKey="predicted"
@@ -288,7 +288,7 @@ const PriceForecastChart: React.FC<Props> = ({ isExporting = false }) => {
                         isAnimationActive={!isExporting}
                     />
 
-                    {/* "Today" divider */}
+
                     {todayDate && (
                         <ReferenceLine
                             x={todayDate}

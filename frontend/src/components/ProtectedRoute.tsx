@@ -19,11 +19,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
   }
 
   if (!token || !user) {
-    // Redirect unauthenticated users to login
     return <Navigate to="/login" replace />;
   }
 
-  // If specific roles are required and user does not have them, deny access
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     return (
       <div className="min-h-[50vh] flex flex-col items-center justify-center space-y-4">
