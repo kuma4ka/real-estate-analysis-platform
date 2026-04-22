@@ -46,6 +46,7 @@ def create_app(config_class=Config):
         backfill_images,
         convert_currencies_command,
         rescrape_duplicates_command,
+        purge_stale_command,
         seed_users_command,
         seed_sources_command
     )
@@ -56,6 +57,7 @@ def create_app(config_class=Config):
     app.cli.add_command(backfill_images)
     app.cli.add_command(convert_currencies_command)
     app.cli.add_command(rescrape_duplicates_command)
+    app.cli.add_command(purge_stale_command)
     app.cli.add_command(seed_users_command)
     app.cli.add_command(seed_sources_command)
 

@@ -168,3 +168,82 @@ def rescrape_duplicates_command(min_count, workers):
     print(f"Queued {len(urls)} listings for re-scraping...")
 
     _execute_scraping(urls, workers, scrape_bon_ua_listing)
+
+
+@click.command('purge-stale')
+@click.option('--workers', default=20, help='Parallel HTTP check threads')
+@click.option('--batch', default=500, help='Commit to DB every N deactivated IDs')
+@click.option('--dry-run', is_flag=True, default=False, help='Print without updating DB')
+@with_appcontext
+def purge_stale_command(workers, batch, dry_run):
+    """Check every active listing's source_url; mark inactive if 404/410/gone."""
+    import requests
+    from concurrent.futures import ThreadPoolExecutor, as_completed as _as_completed
+
+    DEAD_STATUSES = {404, 410}
+
+    # Load only the fields needed — plain tuples, not ORM objects, to avoid cross-thread issues
+    rows = db.session.execute(
+        db.select(Property.id, Property.source_url, Property.images)
+        .where(Property.is_active == True)
+    ).all()
+
+    total = len(rows)
+    print(f"Checking {total} active listings (workers={workers}, dry_run={dry_run})...")
+
+    def check_row(row):
+        prop_id, source_url, images = row.id, row.source_url, row.images
+        try:
+            resp = requests.head(
+                source_url,
+                timeout=8,
+                allow_redirects=True,
+                headers={'User-Agent': 'Mozilla/5.0 (compatible; RealEstateBot/1.0)'}
+            )
+            if resp.status_code in DEAD_STATUSES:
+                return prop_id, resp.status_code, 'dead_url'
+
+            if images and len(images) > 0:
+                img_resp = requests.head(
+                    images[0], timeout=5, allow_redirects=True,
+                    headers={'User-Agent': 'Mozilla/5.0'}
+                )
+                if img_resp.status_code in {404, 410}:
+                    return prop_id, img_resp.status_code, 'dead_image'
+
+            return prop_id, resp.status_code, 'alive'
+        except Exception:
+            return prop_id, 0, 'timeout'
+
+    dead_ids = []
+    checked = 0
+
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = {executor.submit(check_row, row): row for row in rows}
+        for future in _as_completed(futures):
+            prop_id, status, reason = future.result()
+            checked += 1
+
+            if reason in ('dead_url', 'dead_image'):
+                dead_ids.append(prop_id)
+                print(f"  DEAD #{prop_id} -> HTTP {status} ({reason})")
+
+            if checked % 200 == 0:
+                print(f"  [{checked}/{total}] checked -- {len(dead_ids)} dead so far")
+
+    print(f"\n{len(dead_ids)} listings to deactivate out of {total} checked.")
+
+    if not dry_run and dead_ids:
+        for i in range(0, len(dead_ids), batch):
+            chunk = dead_ids[i:i + batch]
+            db.session.execute(
+                db.update(Property)
+                .where(Property.id.in_(chunk))
+                .values(is_active=False)
+            )
+            db.session.commit()
+            print(f"  Committed batch {i // batch + 1}: {len(chunk)} listings deactivated")
+
+    print(f"\nDone. Checked {checked}, deactivated {len(dead_ids)} listings.")
+    if dry_run:
+        print("  (dry-run: no DB changes made)")
