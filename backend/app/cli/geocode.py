@@ -110,9 +110,7 @@ def get_lat_long(address, region=None, attempt=1):
         return None, None, None, None
 
 
-def process_url_in_thread(url, app_config, scrape_func):
-    app = create_app(app_config)
-
+def process_url_in_thread(url, app, scrape_func):
     with app.app_context():
         time.sleep(0.5)
 
@@ -256,12 +254,13 @@ def _execute_scraping(url_list, workers, scrape_func):
 
     print(f"📋 {total} listings queued. Processing...")
 
-    from config import Config
+    from flask import current_app
+    app = current_app._get_current_object()
     stats = {'new': 0, 'updated': 0, 'skipped': 0, 'rejected': 0, 'errors': 0}
 
     with ThreadPoolExecutor(max_workers=workers) as executor:
         futures = {
-            executor.submit(process_url_in_thread, url, Config, scrape_func): url
+            executor.submit(process_url_in_thread, url, app, scrape_func): url
             for url in url_list
         }
 

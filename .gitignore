@@ -109,3 +109,6 @@ secrets.json
 # Ignore PDF files as requested to prevent pushing large binaries or confidential docs
 *.pdf
 .ipynb_checkpoints
+
+# === Runtime Artifacts ===
+cron_log.txt
