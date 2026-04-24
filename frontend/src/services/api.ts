@@ -138,3 +138,13 @@ export const downloadStatsCsv = async (): Promise<void> => {
         throw error;
     }
 };
+
+export const apiLogout = async (): Promise<void> => {
+    try {
+        await fetchWithAuth(`${API_BASE_URL}/auth/logout`, {
+            method: 'POST'
+        });
+    } catch (error) {
+        console.error('Error during logout:', error);
+    }
+};

@@ -247,3 +247,20 @@ def purge_stale_command(workers, batch, dry_run):
     print(f"\nDone. Checked {checked}, deactivated {len(dead_ids)} listings.")
     if dry_run:
         print("  (dry-run: no DB changes made)")
+
+
+@click.command('purge-tokens')
+@with_appcontext
+def purge_tokens_command():
+    """Purges expired JWT tokens from the TokenBlocklist."""
+    from datetime import datetime, timezone, timedelta
+    from app.models import TokenBlocklist
+    from app import db
+
+    # Tokens are valid for 1 day, so anything older than 24 hours can be safely removed.
+    expiration_threshold = datetime.now(timezone.utc) - timedelta(days=1)
+    
+    deleted_count = db.session.query(TokenBlocklist).filter(TokenBlocklist.created_at < expiration_threshold).delete()
+    db.session.commit()
+    
+    print(f"Purged {deleted_count} expired tokens from blocklist.")

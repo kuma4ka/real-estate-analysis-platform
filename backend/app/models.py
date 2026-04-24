@@ -92,3 +92,10 @@ class Property(db.Model):
             'created_at': self.created_at.isoformat(),
             'is_active': self.is_active
         }
+
+class TokenBlocklist(db.Model):
+    __tablename__ = 'token_blocklist'
+
+    id = db.Column(db.Integer, primary_key=True)
+    jti = db.Column(db.String(36), nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))

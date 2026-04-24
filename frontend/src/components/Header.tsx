@@ -65,7 +65,7 @@ export default function Header({
                                     </div>
                                 </Link>
                                 <button
-                                    onClick={() => { logout(); window.location.reload(); }}
+                                    onClick={async () => { await logout(); window.location.reload(); }}
                                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium text-red-500 bg-red-500/10 hover:bg-red-500/20 hover:text-red-600 transition-colors"
                                     title={typeof t('logout') === 'string' ? t('logout') as string : 'Sign Out'}
                                 >
