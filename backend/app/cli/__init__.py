@@ -5,6 +5,7 @@ from app.cli.maintenance import (
     backfill_images,
     convert_currencies_command,
     rescrape_duplicates_command,
+    purge_stale_command,
 )
 from app.cli.seed import seed_users_command, seed_sources_command
 
@@ -16,6 +17,7 @@ __all__ = [
     'backfill_images',
     'convert_currencies_command',
     'rescrape_duplicates_command',
+    'purge_stale_command',
     'seed_users_command',
     'seed_sources_command',
 ]

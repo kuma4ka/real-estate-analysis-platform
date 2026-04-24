@@ -8,3 +8,6 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 # Run scrape_bon_ua every 6 hours (offset by 1 hour)
 0 1-23/6 * * * root cd /app && /usr/local/bin/flask scrape_bon_ua --pages 10 >> /var/log/cron.log 2>&1
+
+# Deactivate expired listings every Sunday at 03:00
+0 3 * * 0 root cd /app && /usr/local/bin/flask purge-stale --workers 30 >> /var/log/cron.log 2>&1
