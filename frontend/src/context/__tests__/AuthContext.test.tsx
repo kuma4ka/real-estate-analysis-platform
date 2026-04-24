@@ -22,6 +22,10 @@ vi.mock('jwt-decode', () => ({
   })),
 }));
 
+vi.mock('../../services/api', () => ({
+  apiLogout: vi.fn().mockResolvedValue(undefined),
+}));
+
 /** A simple consumer component to expose AuthContext values for assertions. */
 function AuthConsumer() {
   const { user, token, isLoading, login, logout } = useAuth();
@@ -138,11 +142,13 @@ describe('AuthContext', () => {
       expect(screen.getByTestId('token').textContent).toBe('existing-jwt');
     });
 
-    act(() => {
+    await act(async () => {
       screen.getByText('Logout').click();
     });
 
-    expect(screen.getByTestId('user').textContent).toBe('null');
+    await waitFor(() => {
+      expect(screen.getByTestId('user').textContent).toBe('null');
+    });
     expect(screen.getByTestId('token').textContent).toBe('null');
     expect(localStorage.getItem('token')).toBeNull();
     expect(localStorage.getItem('user')).toBeNull();
