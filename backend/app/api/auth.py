@@ -141,3 +141,19 @@ def change_password():
         return jsonify({"message": "Database error"}), 500
 
     return jsonify({"message": "Password updated successfully"}), 200
+
+from app.models import TokenBlocklist
+
+@auth_bp.route('/logout', methods=['POST'])
+@require_auth
+def logout():
+    jti = getattr(g, 'jti', None)
+    if jti:
+        blocklisted_token = TokenBlocklist(jti=jti)
+        try:
+            db.session.add(blocklisted_token)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            return jsonify({"message": "Database error"}), 500
+    return jsonify({"message": "Logged out successfully"}), 200

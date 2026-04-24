@@ -1,4 +1,5 @@
 import jwt
+import uuid
 from functools import wraps
 from flask import request, jsonify, g, current_app
 from datetime import datetime, timedelta, timezone
@@ -8,13 +9,18 @@ def generate_token(user_id, role):
         'exp': datetime.now(timezone.utc) + timedelta(days=1),
         'iat': datetime.now(timezone.utc),
         'sub': user_id,
-        'role': role
+        'role': role,
+        'jti': str(uuid.uuid4())
     }
     return jwt.encode(payload, current_app.config['SECRET_KEY'], algorithm='HS256')
 
 def decode_token(token):
     try:
         payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+        from app.models import TokenBlocklist
+        is_blocked = TokenBlocklist.query.filter_by(jti=payload.get('jti')).first()
+        if is_blocked:
+            return 'Token has been revoked. Please log in again.'
         return payload
     except jwt.ExpiredSignatureError:
         return 'Signature expired. Please log in again.'
@@ -38,6 +44,7 @@ def require_auth(f):
             if not isinstance(resp, str):
                 g.user_id = resp['sub']
                 g.role = resp['role']
+                g.jti = resp.get('jti')
                 return f(*args, **kwargs)
             return jsonify({'message': resp}), 401
         
