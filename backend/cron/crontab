@@ -11,3 +11,6 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 # Deactivate expired listings every Sunday at 03:00
 0 3 * * 0 root cd /app && /usr/local/bin/flask purge-stale --workers 30 >> /var/log/cron.log 2>&1
+
+# Purge expired JWT tokens from blocklist daily at 04:00
+0 4 * * * root cd /app && /usr/local/bin/flask purge-tokens >> /var/log/cron.log 2>&1
