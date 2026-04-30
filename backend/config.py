@@ -1,20 +1,35 @@
 import os
+import sys
+
 from dotenv import load_dotenv
 
 load_dotenv()
 
+_is_unprotected_env = (
+    os.getenv('FLASK_DEBUG') in ('1', 'true', 'True')
+    or os.getenv('CI') == 'true'
+    or 'pytest' in sys.modules
+)
+
+
 class Config:
     SECRET_KEY = os.getenv('SECRET_KEY')
     if not SECRET_KEY:
-        import sys
-        # Bypass check in debug, CI, or local pytest environments
-        if os.getenv('FLASK_DEBUG') not in ('1', 'true', 'True') and os.getenv('CI') != 'true' and "pytest" not in sys.modules:
+        if not _is_unprotected_env:
             raise ValueError("SECRET_KEY environment variable is not set!")
         SECRET_KEY = 'default-dev-key'
 
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')
+    _DATABASE_URL = os.getenv('DATABASE_URL')
+    if not _DATABASE_URL:
+        if not _is_unprotected_env:
+            raise ValueError("DATABASE_URL environment variable is not set!")
+        _DATABASE_URL = 'sqlite:///dev.db'
+
+    SQLALCHEMY_DATABASE_URI = _DATABASE_URL
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    RATELIMIT_STORAGE_URL = os.getenv('RATELIMIT_STORAGE_URL', 'memory://')
+
 
 class TestConfig(Config):
     TESTING = True
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
