@@ -1,9 +1,9 @@
 /**
  * Integration tests for AuthContext (AuthProvider + useAuth hook).
- * Build 2 – Frontend integration: AuthProvider state + localStorage interaction.
+ * Build 2 – Frontend integration: AuthProvider state + sessionStorage interaction.
  *
  * Tests verify that the AuthContext correctly manages auth state,
- * persists tokens to localStorage, reads them back on mount, and clears them on logout.
+ * persists tokens to sessionStorage, reads them back on mount, and clears them on logout.
  */
 import { render, screen, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -53,12 +53,12 @@ function renderWithAuth() {
 }
 
 beforeEach(() => {
-  localStorage.clear();
+  sessionStorage.clear();
   vi.clearAllMocks();
 });
 
 describe('AuthContext', () => {
-  it('initial state has no user and no token when localStorage is empty', async () => {
+  it('initial state has no user and no token when sessionStorage is empty', async () => {
     renderWithAuth();
     await waitFor(() => {
       expect(screen.getByTestId('isLoading').textContent).toBe('false');
@@ -67,10 +67,10 @@ describe('AuthContext', () => {
     expect(screen.getByTestId('token').textContent).toBe('null');
   });
 
-  it('loads user and token from localStorage on mount if token is valid', async () => {
+  it('loads user and token from sessionStorage on mount if token is valid', async () => {
     const storedUser = { id: 1, email: 'stored@test.com', role: 'Analyst' };
-    localStorage.setItem('token', 'existing-jwt');
-    localStorage.setItem('user', JSON.stringify(storedUser));
+    sessionStorage.setItem('token', 'existing-jwt');
+    sessionStorage.setItem('user', JSON.stringify(storedUser));
 
     renderWithAuth();
     await waitFor(() => {
@@ -87,8 +87,8 @@ describe('AuthContext', () => {
     const { jwtDecode } = await import('jwt-decode');
     vi.mocked(jwtDecode).mockReturnValueOnce({ exp: 1 } as { exp: number }); // expired
 
-    localStorage.setItem('token', 'expired-jwt');
-    localStorage.setItem('user', JSON.stringify({ id: 99, email: 'old@test.com', role: 'User' }));
+    sessionStorage.setItem('token', 'expired-jwt');
+    sessionStorage.setItem('user', JSON.stringify({ id: 99, email: 'old@test.com', role: 'User' }));
 
     renderWithAuth();
     await waitFor(() => {
@@ -97,14 +97,14 @@ describe('AuthContext', () => {
 
     expect(screen.getByTestId('user').textContent).toBe('null');
     expect(screen.getByTestId('token').textContent).toBe('null');
-    expect(localStorage.getItem('token')).toBeNull();
+    expect(sessionStorage.getItem('token')).toBeNull();
   });
 
   it('clears storage and sets user=null if stored token is malformed', async () => {
     const { jwtDecode } = await import('jwt-decode');
     vi.mocked(jwtDecode).mockImplementationOnce(() => { throw new Error('bad token'); });
 
-    localStorage.setItem('token', 'malformed-jwt');
+    sessionStorage.setItem('token', 'malformed-jwt');
 
     renderWithAuth();
     await waitFor(() => {
@@ -112,10 +112,10 @@ describe('AuthContext', () => {
     });
 
     expect(screen.getByTestId('user').textContent).toBe('null');
-    expect(localStorage.getItem('token')).toBeNull();
+    expect(sessionStorage.getItem('token')).toBeNull();
   });
 
-  it('login() saves token and user to state and localStorage', async () => {
+  it('login() saves token and user to state and sessionStorage', async () => {
     renderWithAuth();
     await waitFor(() => {
       expect(screen.getByTestId('isLoading').textContent).toBe('false');
@@ -128,14 +128,13 @@ describe('AuthContext', () => {
     expect(screen.getByTestId('token').textContent).toBe('mock-jwt');
     const user = JSON.parse(screen.getByTestId('user').textContent!);
     expect(user.email).toBe('test@test.com');
-    expect(localStorage.getItem('token')).toBe('mock-jwt');
-    expect(JSON.parse(localStorage.getItem('user')!).role).toBe('User');
+    expect(sessionStorage.getItem('token')).toBe('mock-jwt');
+    expect(JSON.parse(sessionStorage.getItem('user')!).role).toBe('User');
   });
 
-  it('logout() clears state and localStorage', async () => {
-    // Set up logged-in state first
-    localStorage.setItem('token', 'existing-jwt');
-    localStorage.setItem('user', JSON.stringify({ id: 1, email: 'me@test.com', role: 'User' }));
+  it('logout() clears state and sessionStorage', async () => {
+    sessionStorage.setItem('token', 'existing-jwt');
+    sessionStorage.setItem('user', JSON.stringify({ id: 1, email: 'me@test.com', role: 'User' }));
 
     renderWithAuth();
     await waitFor(() => {
@@ -150,13 +149,12 @@ describe('AuthContext', () => {
       expect(screen.getByTestId('user').textContent).toBe('null');
     });
     expect(screen.getByTestId('token').textContent).toBe('null');
-    expect(localStorage.getItem('token')).toBeNull();
-    expect(localStorage.getItem('user')).toBeNull();
+    expect(sessionStorage.getItem('token')).toBeNull();
+    expect(sessionStorage.getItem('user')).toBeNull();
   });
 
   it('isLoading transitions from true to false after mount', async () => {
     renderWithAuth();
-    // isLoading starts true, then becomes false after effect runs
     await waitFor(() => {
       expect(screen.getByTestId('isLoading').textContent).toBe('false');
     });

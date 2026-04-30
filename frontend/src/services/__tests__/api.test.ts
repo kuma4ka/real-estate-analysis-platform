@@ -5,6 +5,8 @@
  * Tests verify that api.ts correctly builds URLs, attaches auth headers,
  * handles error responses, and parses JSON — integrating service logic
  * with the browser fetch API.
+ *
+ * Note: token storage uses sessionStorage (not localStorage).
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
@@ -28,7 +30,7 @@ function mockFetch(body: unknown, ok = true, status = 200) {
 
 beforeEach(() => {
   vi.stubGlobal('fetch', mockFetch({}));
-  localStorage.clear();
+  sessionStorage.clear();
 });
 
 afterEach(() => {
@@ -37,8 +39,8 @@ afterEach(() => {
 
 
 describe('fetchWithAuth', () => {
-  it('includes Bearer token from localStorage when present', async () => {
-    localStorage.setItem('token', 'test-jwt-token');
+  it('includes Bearer token from sessionStorage when present', async () => {
+    sessionStorage.setItem('token', 'test-jwt-token');
     const fetchMock = mockFetch({ ok: true });
     vi.stubGlobal('fetch', fetchMock);
 
@@ -48,7 +50,7 @@ describe('fetchWithAuth', () => {
     expect(calledHeaders.get('Authorization')).toBe('Bearer test-jwt-token');
   });
 
-  it('sends no Authorization header when no token in localStorage', async () => {
+  it('sends no Authorization header when no token in sessionStorage', async () => {
     const fetchMock = mockFetch({});
     vi.stubGlobal('fetch', fetchMock);
 
