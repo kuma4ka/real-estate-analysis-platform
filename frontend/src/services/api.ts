@@ -4,7 +4,7 @@ export const API_BASE_URL = '/api/v1';
 
 // Helper to include JWT token
 export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     const headers = new Headers(options.headers || {});
     
     if (token) {

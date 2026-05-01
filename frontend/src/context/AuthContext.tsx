@@ -29,29 +29,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setToken(null);
     setUser(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
   };
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('token');
+    const storedToken = sessionStorage.getItem('token');
     if (storedToken) {
       try {
         const decoded = jwtDecode<{ exp: number }>(storedToken);
         if (decoded.exp * 1000 < Date.now()) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
+          sessionStorage.removeItem('token');
+          sessionStorage.removeItem('user');
         } else {
           setToken(storedToken);
-          const storedUser = localStorage.getItem('user');
+          const storedUser = sessionStorage.getItem('user');
           if (storedUser) {
             setUser(JSON.parse(storedUser));
           }
         }
       } catch (err) {
         console.error('Invalid token found', err);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
       }
     }
     setIsLoading(false);
@@ -60,9 +60,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = (newToken: string, newUser: User) => {
     setToken(newToken);
     setUser(newUser);
-    localStorage.setItem('token', newToken);
-    localStorage.setItem('user', JSON.stringify(newUser));
+    sessionStorage.setItem('token', newToken);
+    sessionStorage.setItem('user', JSON.stringify(newUser));
   };
+
 
   return (
     <AuthContext.Provider value={{ user, token, isLoading, login, logout }}>

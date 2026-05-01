@@ -9,7 +9,7 @@ from config import Config
 db = SQLAlchemy()
 migrate = Migrate()
 ma = Marshmallow()
-limiter = Limiter(key_func=get_remote_address, storage_uri="memory://")
+limiter = Limiter(key_func=get_remote_address)
 
 def create_app(config_class=Config):
     app = Flask(__name__)
