@@ -1,6 +1,14 @@
+import enum
 from datetime import datetime, timezone
 from app import db
 from werkzeug.security import generate_password_hash, check_password_hash
+
+
+class UserRole(str, enum.Enum):
+    ADMIN = 'Admin'
+    ANALYST = 'Analyst'
+    USER = 'User'
+    GUEST = 'Guest'
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -8,7 +16,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(256), nullable=False)
-    role = db.Column(db.String(20), nullable=False, default='User')
+    role = db.Column(db.String(20), nullable=False, default=UserRole.USER)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     last_login = db.Column(db.DateTime, nullable=True)
     failed_login_attempts = db.Column(db.Integer, default=0)

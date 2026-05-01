@@ -6,6 +6,7 @@ import { useTheme } from './hooks/useTheme';
 import { useProperties } from './hooks/useProperties';
 import { useMapData } from './hooks/useMapData';
 import { useState } from 'react';
+import { UserRole } from './types/user';
 
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -33,7 +34,7 @@ function MainLayout() {
         { key: 'list', label: t('view_list') || 'List' },
         { key: 'map', label: t('view_map') || 'Map' },
     ];
-    if (user?.role === 'Analyst' || user?.role === 'Admin') {
+    if (user?.role === UserRole.ANALYST || user?.role === UserRole.ADMIN) {
         tabs.push({ key: 'analytics', label: t('view_analytics') || 'Analytics' });
     }
 
@@ -44,7 +45,7 @@ function MainLayout() {
 
     const renderContent = () => {
         if (viewMode === 'analytics') {
-            if (user?.role === 'Analyst' || user?.role === 'Admin') {
+            if (user?.role === UserRole.ANALYST || user?.role === UserRole.ADMIN) {
                 return <AnalyticsDashboard />;
             }
             return (

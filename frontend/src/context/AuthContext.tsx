@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import { apiLogout } from '../services/api';
+import { UserRole } from '../types/user';
 
 interface User {
   id: number;
   email: string;
-  role: string;
+  role: UserRole;
 }
 
 interface AuthContextType {
