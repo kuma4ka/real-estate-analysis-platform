@@ -52,23 +52,28 @@ def _compute_stats():
         Property.rooms.isnot(None)
     ).group_by(Property.rooms).order_by(Property.rooms).all()
 
-    price_ranges = [
-        (0, 10000, '<$10k'),
-        (10000, 25000, '$10-25k'),
-        (25000, 50000, '$25-50k'),
-        (50000, 100000, '$50-100k'),
-        (100000, 250000, '$100-250k'),
-        (250000, float('inf'), '$250k+'),
-    ]
+    _PRICE_BUCKET_ORDER = ['<$10k', '$10-25k', '$25-50k', '$50-100k', '$100-250k', '$250k+']
 
-    price_histogram = []
-    for low, high, label in price_ranges:
-        q = Property.query.filter(Property.price.isnot(None))
-        if high == float('inf'):
-            count = q.filter(Property.price >= low).count()
-        else:
-            count = q.filter(Property.price >= low, Property.price < high).count()
-        price_histogram.append({'range': label, 'count': count})
+    _price_bucket = case(
+        (Property.price < 10_000, '<$10k'),
+        (Property.price < 25_000, '$10-25k'),
+        (Property.price < 50_000, '$25-50k'),
+        (Property.price < 100_000, '$50-100k'),
+        (Property.price < 250_000, '$100-250k'),
+        else_='$250k+'
+    )
+    _histogram_rows = (
+        Property.query
+        .with_entities(_price_bucket.label('range'), func.count().label('count'))
+        .filter(Property.price.isnot(None))
+        .group_by(_price_bucket)
+        .all()
+    )
+    _counts = {r[0]: r[1] for r in _histogram_rows}
+    price_histogram = [
+        {'range': label, 'count': _counts.get(label, 0)}
+        for label in _PRICE_BUCKET_ORDER
+    ]
 
     # Daily trend with % price change vs previous day
     trend_rows = Property.query.with_entities(
