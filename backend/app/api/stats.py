@@ -9,7 +9,7 @@ from cachetools import cached, TTLCache
 
 @cached(cache=TTLCache(maxsize=4, ttl=600))
 def _compute_stats():
-    base_query = Property.query.filter(Property.is_active)
+    base_query = Property.query.filter(Property.is_active == True)
     total = base_query.count()
 
     avg_price_raw = base_query.with_entities(func.avg(Property.price)).scalar() or 0
@@ -22,7 +22,7 @@ def _compute_stats():
     avg_price_per_m2 = Property.query.with_entities(
         func.avg(Property.price / Property.area)
     ).filter(
-        Property.is_active,
+        Property.is_active == True,
         Property.area.isnot(None),
         Property.area > 0,
         Property.price.isnot(None),

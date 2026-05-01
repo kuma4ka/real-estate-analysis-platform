@@ -48,7 +48,7 @@ def get_properties():
     if price_max is not None and price_max < 0:
         return jsonify({"message": "price_max cannot be negative"}), 400
 
-    query = Property.query.filter(Property.is_active)
+    query = Property.query.filter(Property.is_active == True)
 
     if search:
         term = f"%{search}%"
@@ -115,7 +115,7 @@ def get_map_properties():
     query = Property.query.filter(
         Property.latitude.isnot(None),
         Property.longitude.isnot(None),
-        Property.is_active
+        Property.is_active == True
     )
 
     city = request.args.get('city')
