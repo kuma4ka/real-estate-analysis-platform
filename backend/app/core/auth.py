@@ -57,15 +57,30 @@ def require_role(role_name):
         def decorated(*args, **kwargs):
             if not getattr(g, 'role', None):
                 return jsonify({'message': 'Role missing or token not processed'}), 401
-            # Basic hierarchy checking or exact match
             if g.role == 'Admin':
-                pass # Admin can do everything
+                pass
             elif g.role == role_name:
-                pass # Authorized
+                pass
             elif role_name == 'User' and g.role in ['User', 'Analyst', 'Admin']:
-                pass # Analysts/Admins also count as Users
+                pass
             else:
                 return jsonify({'message': 'Insufficient permissions'}), 403
             return f(*args, **kwargs)
         return require_auth(decorated)
     return decorator
+
+
+def optional_auth(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth_header = request.headers.get('Authorization', '')
+        if auth_header.startswith('Bearer '):
+            token = auth_header.split(' ', 1)[1]
+            payload = decode_token(token)
+            if isinstance(payload, dict):
+                g.user_id = payload['sub']
+                g.role = payload['role']
+                g.jti = payload.get('jti')
+        return f(*args, **kwargs)
+    return decorated
+

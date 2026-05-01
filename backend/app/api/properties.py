@@ -1,9 +1,10 @@
-from flask import jsonify, request, abort
+from flask import jsonify, request, abort, g
 from sqlalchemy import desc, asc, or_
 from app.models import Property
 from app.api import bp
 from app import db
 from app.api.schemas import properties_schema, property_schema
+from app.core.auth import optional_auth
 from app.services.cities import CITIES
 
 
@@ -22,13 +23,7 @@ def _resolve_city_alias(name):
 
 
 def _is_authenticated() -> bool:
-    """Return True if the request carries a valid JWT Bearer token."""
-    from app.core.auth import decode_token
-    auth_header = request.headers.get('Authorization', '')
-    parts = auth_header.split(' ')
-    if len(parts) > 1:
-        return not isinstance(decode_token(parts[1]), str)
-    return False
+    return getattr(g, 'user_id', None) is not None
 
 
 @bp.route('/health', methods=['GET'])
@@ -37,6 +32,7 @@ def health_check():
 
 
 @bp.route('/properties', methods=['GET'])
+@optional_auth
 def get_properties():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 20, type=int)
@@ -99,6 +95,7 @@ def get_properties():
 
 
 @bp.route('/properties/<int:id>', methods=['GET'])
+@optional_auth
 def get_property(id):
     prop = db.session.get(Property, id)
     if prop is None:
@@ -112,6 +109,7 @@ def get_property(id):
 
 
 @bp.route('/properties/map', methods=['GET'])
+@optional_auth
 def get_map_properties():
     """Lightweight endpoint for map markers. Supports same filters as /properties."""
     query = Property.query.filter(
