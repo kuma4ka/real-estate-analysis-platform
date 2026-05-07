@@ -3,14 +3,14 @@ import click
 from flask.cli import with_appcontext
 
 from app import db
-from app.models import User, Source
+from app.models import User, Source, UserRole
 
 
 @click.command('seed-users')
 @with_appcontext
 def seed_users_command():
     """Seeds the database with default Admin, Analyst, and User accounts from ENV secrets."""
-    roles = ['Admin', 'Analyst', 'User']
+    roles = [UserRole.ADMIN, UserRole.ANALYST, UserRole.USER]
     created = 0
 
     for role in roles:

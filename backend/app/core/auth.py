@@ -3,6 +3,7 @@ import uuid
 from functools import wraps
 from flask import request, jsonify, g, current_app
 from datetime import datetime, timedelta, timezone
+from app.models import UserRole
 
 def generate_token(user_id, role):
     payload = {
@@ -57,11 +58,11 @@ def require_role(role_name):
         def decorated(*args, **kwargs):
             if not getattr(g, 'role', None):
                 return jsonify({'message': 'Role missing or token not processed'}), 401
-            if g.role == 'Admin':
+            if g.role == UserRole.ADMIN:
                 pass
             elif g.role == role_name:
                 pass
-            elif role_name == 'User' and g.role in ['User', 'Analyst', 'Admin']:
+            elif role_name == UserRole.USER and g.role in (UserRole.USER, UserRole.ANALYST, UserRole.ADMIN):
                 pass
             else:
                 return jsonify({'message': 'Insufficient permissions'}), 403

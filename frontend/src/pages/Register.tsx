@@ -3,6 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../services/api';
 import AuthLayout from '../components/AuthLayout';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { UserRole } from '../types/user';
 
 const Register: React.FC = () => {
   const { t } = useTranslation();
@@ -11,6 +13,7 @@ const Register: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,8 +51,8 @@ const Register: React.FC = () => {
         throw new Error(errorMessage);
       }
 
-      login(data.token as string, data.user as { id: number, email: string, role: string });
-      window.location.href = '/';
+      login(data.token as string, data.user as { id: number, email: string, role: UserRole });
+      navigate('/', { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {

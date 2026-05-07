@@ -1,4 +1,6 @@
-from flask import jsonify
+import csv
+import io
+from flask import jsonify, Response
 from sqlalchemy import func, case
 from app.models import Property
 from app.api import bp
@@ -9,7 +11,7 @@ from cachetools import cached, TTLCache
 
 @cached(cache=TTLCache(maxsize=4, ttl=600))
 def _compute_stats():
-    base_query = Property.query.filter(Property.is_active)
+    base_query = Property.query.filter(Property.is_active == True)
     total = base_query.count()
 
     avg_price_raw = base_query.with_entities(func.avg(Property.price)).scalar() or 0
@@ -22,7 +24,7 @@ def _compute_stats():
     avg_price_per_m2 = Property.query.with_entities(
         func.avg(Property.price / Property.area)
     ).filter(
-        Property.is_active,
+        Property.is_active == True,
         Property.area.isnot(None),
         Property.area > 0,
         Property.price.isnot(None),
@@ -52,23 +54,28 @@ def _compute_stats():
         Property.rooms.isnot(None)
     ).group_by(Property.rooms).order_by(Property.rooms).all()
 
-    price_ranges = [
-        (0, 10000, '<$10k'),
-        (10000, 25000, '$10-25k'),
-        (25000, 50000, '$25-50k'),
-        (50000, 100000, '$50-100k'),
-        (100000, 250000, '$100-250k'),
-        (250000, float('inf'), '$250k+'),
-    ]
+    _PRICE_BUCKET_ORDER = ['<$10k', '$10-25k', '$25-50k', '$50-100k', '$100-250k', '$250k+']
 
-    price_histogram = []
-    for low, high, label in price_ranges:
-        q = Property.query.filter(Property.price.isnot(None))
-        if high == float('inf'):
-            count = q.filter(Property.price >= low).count()
-        else:
-            count = q.filter(Property.price >= low, Property.price < high).count()
-        price_histogram.append({'range': label, 'count': count})
+    _price_bucket = case(
+        (Property.price < 10_000, '<$10k'),
+        (Property.price < 25_000, '$10-25k'),
+        (Property.price < 50_000, '$25-50k'),
+        (Property.price < 100_000, '$50-100k'),
+        (Property.price < 250_000, '$100-250k'),
+        else_='$250k+'
+    )
+    _histogram_rows = (
+        Property.query
+        .with_entities(_price_bucket.label('range'), func.count().label('count'))
+        .filter(Property.price.isnot(None))
+        .group_by(_price_bucket)
+        .all()
+    )
+    _counts = {r[0]: r[1] for r in _histogram_rows}
+    price_histogram = [
+        {'range': label, 'count': _counts.get(label, 0)}
+        for label in _PRICE_BUCKET_ORDER
+    ]
 
     # Daily trend with % price change vs previous day
     trend_rows = Property.query.with_entities(
@@ -247,3 +254,34 @@ def get_price_forecast():
         
     return jsonify(res)
 
+
+
+@bp.route('/stats/export', methods=['GET'])
+@require_role('Analyst')
+def export_stats_csv():
+    props = (
+        Property.query
+        .filter(Property.is_active == True)
+        .order_by(Property.created_at.desc())
+        .limit(10_000)
+        .all()
+    )
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow([
+        'id', 'title', 'price', 'currency', 'city', 'district',
+        'area', 'rooms', 'floor', 'address', 'created_at',
+    ])
+    for p in props:
+        writer.writerow([
+            p.id, p.title, p.price, p.currency, p.city, p.district,
+            p.area, p.rooms, p.floor, p.address,
+            p.created_at.isoformat() if p.created_at else None,
+        ])
+
+    return Response(
+        buf.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=market_export.csv'},
+    )

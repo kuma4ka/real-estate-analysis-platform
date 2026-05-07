@@ -11,7 +11,7 @@ requests==2.32.5
 beautifulsoup4==4.14.2
 cloudscraper
 geopy
-pandas==2.2.3
+numpy==2.2.5
 cachetools==5.3.3
 PyJWT==2.8.0
 Flask-Limiter
@@ -20,5 +20,3 @@ SQLAlchemy==2.0.43
 
 # Dev & Testing
 pytest==9.0.2
-flake8==7.3.0
-radon==6.0.1
