@@ -1,4 +1,6 @@
-from flask import jsonify
+import csv
+import io
+from flask import jsonify, Response
 from sqlalchemy import func, case
 from app.models import Property
 from app.api import bp
@@ -252,3 +254,34 @@ def get_price_forecast():
         
     return jsonify(res)
 
+
+
+@bp.route('/stats/export', methods=['GET'])
+@require_role('Analyst')
+def export_stats_csv():
+    props = (
+        Property.query
+        .filter(Property.is_active == True)
+        .order_by(Property.created_at.desc())
+        .limit(10_000)
+        .all()
+    )
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow([
+        'id', 'title', 'price', 'currency', 'city', 'district',
+        'area', 'rooms', 'floor', 'address', 'created_at',
+    ])
+    for p in props:
+        writer.writerow([
+            p.id, p.title, p.price, p.currency, p.city, p.district,
+            p.area, p.rooms, p.floor, p.address,
+            p.created_at.isoformat() if p.created_at else None,
+        ])
+
+    return Response(
+        buf.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=market_export.csv'},
+    )
