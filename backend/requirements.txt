@@ -11,7 +11,6 @@ requests==2.32.5
 beautifulsoup4==4.14.2
 cloudscraper
 geopy
-pandas==2.2.3
 cachetools==5.3.3
 PyJWT==2.8.0
 Flask-Limiter
