@@ -1,3 +1,4 @@
+import os
 from flask import jsonify, request, abort, g
 from sqlalchemy import desc, asc, or_
 from app.models import Property
@@ -6,6 +7,8 @@ from app import db
 from app.api.schemas import properties_schema, property_schema
 from app.core.auth import optional_auth
 from app.services.cities import CITIES
+
+MAX_MAP_PINS = int(os.getenv('MAX_MAP_PINS', '5000'))
 
 
 def _resolve_city_alias(name):
@@ -133,7 +136,7 @@ def get_map_properties():
     if price_max:
         query = query.filter(Property.price <= price_max)
 
-    properties = query.all()
+    properties = query.limit(MAX_MAP_PINS).all()
 
     data = [{
         'id': p.id,
