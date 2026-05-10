@@ -63,8 +63,7 @@ const AnalyticsDashboard: React.FC = () => {
                 (key, fallback) => {
                     const tEn = i18n.getFixedT('en');
                     return tEn(key) as string || fallback || key;
-                },
-                'en'
+                }
             );
         } catch (err) {
             const msg = err instanceof Error ? err.message : 'PDF export failed';
