@@ -56,16 +56,27 @@ def require_role(role_name):
     def decorator(f):
         @wraps(f)
         def decorated(*args, **kwargs):
-            if not getattr(g, 'role', None):
-                return jsonify({'message': 'Role missing or token not processed'}), 401
-            if g.role == UserRole.ADMIN:
+            if not getattr(g, 'user_id', None):
+                return jsonify({'message': 'Authentication required'}), 401
+
+            from app.models import User
+            from app import db
+            user = db.session.get(User, g.user_id)
+            if not user:
+                return jsonify({'message': 'User not found'}), 401
+
+            live_role = user.role
+            g.role = live_role
+
+            if live_role == UserRole.ADMIN:
                 pass
-            elif g.role == role_name:
+            elif live_role == role_name:
                 pass
-            elif role_name == UserRole.USER and g.role in (UserRole.USER, UserRole.ANALYST, UserRole.ADMIN):
+            elif role_name == UserRole.USER and live_role in (UserRole.USER, UserRole.ANALYST, UserRole.ADMIN):
                 pass
             else:
                 return jsonify({'message': 'Insufficient permissions'}), 403
+
             return f(*args, **kwargs)
         return require_auth(decorated)
     return decorator
