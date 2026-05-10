@@ -38,8 +38,7 @@ const captureElement = async (
 export async function exportAnalyticsPdf(
     stats: StatsData,
     refs: ChartRefs,
-    t: TFunction,
-    lang: string
+    t: TFunction
 ): Promise<void> {
     const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
         import('jspdf'),
@@ -73,7 +72,7 @@ export async function exportAnalyticsPdf(
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
-    const dateStr = new Date().toLocaleDateString(lang === 'uk' ? 'uk-UA' : 'en-US', {
+    const dateStr = new Date().toLocaleDateString('en-US', {
         year: 'numeric', month: 'long', day: 'numeric',
     });
     doc.text(dateStr, pageW - margin, 38, { align: 'right' });

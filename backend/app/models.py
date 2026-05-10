@@ -37,22 +37,6 @@ class User(db.Model):
             'last_login': self.last_login.isoformat() if self.last_login else None
         }
 
-class Source(db.Model):
-    __tablename__ = 'sources'
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(255), unique=True, nullable=False)
-    base_url = db.Column(db.Text, nullable=False)
-    is_active = db.Column(db.Boolean, default=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'name': self.name,
-            'base_url': self.base_url,
-            'is_active': self.is_active
-        }
 
 class Property(db.Model):
     __tablename__ = 'properties'
@@ -76,7 +60,6 @@ class Property(db.Model):
 
     source_url = db.Column(db.Text, unique=True, nullable=False)
     source_website = db.Column(db.String(50))
-    description = db.Column(db.Text, nullable=True)
     images = db.Column(db.JSON, nullable=True)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
 

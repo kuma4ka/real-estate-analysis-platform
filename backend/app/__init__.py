@@ -48,8 +48,7 @@ def create_app(config_class=Config):
         rescrape_duplicates_command,
         purge_stale_command,
         purge_tokens_command,
-        seed_users_command,
-        seed_sources_command
+        seed_users_command
     )
     app.cli.add_command(scrape_meget_command)
     app.cli.add_command(scrape_bon_ua_command)
@@ -61,6 +60,5 @@ def create_app(config_class=Config):
     app.cli.add_command(purge_stale_command)
     app.cli.add_command(purge_tokens_command)
     app.cli.add_command(seed_users_command)
-    app.cli.add_command(seed_sources_command)
 
     return app

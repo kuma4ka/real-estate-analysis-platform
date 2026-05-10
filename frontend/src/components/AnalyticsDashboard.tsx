@@ -21,13 +21,9 @@ import useThrottle from '../hooks/useThrottle';
 import { exportAnalyticsPdf } from '../utils/exportAnalyticsPdf';
 import PriceForecastChart from './PriceForecastChart';
 import { UserRole } from '../types/user';
+import { formatPrice } from '../utils/format';
 
 const CHART_COLORS = ['#5bc0c4', '#b4ebca', '#d9f2b4', '#ffb7c3', '#d3fac7', '#9ed8db', '#a8d5ba', '#ffd4dc'];
-
-const formatPrice = (value: number) => {
-    if (value >= 1000) return `$${(value / 1000).toFixed(0)}k`;
-    return `$${value}`;
-};
 
 const AnalyticsDashboard: React.FC = () => {
     const { t, i18n } = useTranslation();
@@ -42,7 +38,6 @@ const AnalyticsDashboard: React.FC = () => {
     const [stats, setStats] = useState<StatsData | null>(null);
     const [loading, setLoading] = useState(true);
     const [isExporting, setIsExporting] = useState(false);
-    const [exportCooldown, setExportCooldown] = useState(false);
     const [exportError, setExportError] = useState<string | null>(null);
     const [drilldownOpen, setDrilldownOpen] = useState(false);
     const [cityMetric, setCityMetric] = useState<'count' | 'avg_price' | 'avg_price_per_m2'>('count');
@@ -50,7 +45,7 @@ const AnalyticsDashboard: React.FC = () => {
     const canExport = user?.role === UserRole.ANALYST || user?.role === UserRole.ADMIN;
 
     const exportPdfCore = async () => {
-        if (isExporting || exportCooldown) return;
+        if (isExporting) return;
         setIsExporting(true);
         setExportError(null);
         try {
@@ -68,8 +63,7 @@ const AnalyticsDashboard: React.FC = () => {
                 (key, fallback) => {
                     const tEn = i18n.getFixedT('en');
                     return tEn(key) as string || fallback || key;
-                },
-                'en'
+                }
             );
         } catch (err) {
             const msg = err instanceof Error ? err.message : 'PDF export failed';
@@ -78,8 +72,6 @@ const AnalyticsDashboard: React.FC = () => {
             setTimeout(() => setExportError(null), 4_000);
         } finally {
             setIsExporting(false);
-            setExportCooldown(true);
-            setTimeout(() => setExportCooldown(false), 10_000);
         }
     };
 
@@ -155,7 +147,7 @@ const AnalyticsDashboard: React.FC = () => {
                 {canExport && (
                     <button
                         onClick={handleExportPdf}
-                        disabled={isExporting || exportCooldown}
+                        disabled={isExporting}
                         className="
                             flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
                             bg-primary text-white
@@ -163,7 +155,6 @@ const AnalyticsDashboard: React.FC = () => {
                             disabled:opacity-50 disabled:cursor-not-allowed
                             transition-all duration-200
                         "
-                        title={exportCooldown ? t('analytics_export_cooldown', 'Please wait before re-exporting') : undefined}
                     >
                         {isExporting ? (
                             <>
@@ -178,10 +169,7 @@ const AnalyticsDashboard: React.FC = () => {
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                 </svg>
-                                {exportCooldown
-                                    ? t('analytics_export_cooldown', 'Please wait...')
-                                    : t('analytics_export_pdf', 'Download PDF')
-                                }
+                                {t('analytics_export_pdf', 'Download PDF')}
                             </>
                         )}
                     </button>

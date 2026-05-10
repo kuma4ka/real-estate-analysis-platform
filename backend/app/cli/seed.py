@@ -3,7 +3,7 @@ import click
 from flask.cli import with_appcontext
 
 from app import db
-from app.models import User, Source, UserRole
+from app.models import User, UserRole
 
 
 @click.command('seed-users')
@@ -38,20 +38,3 @@ def seed_users_command():
     else:
         print("No new users were created.")
 
-
-@click.command('seed-sources')
-@with_appcontext
-def seed_sources_command():
-    """Seeds the database with default scraping sources."""
-    meget = Source.query.filter_by(name='MEGET').first()
-    if not meget:
-        meget = Source(name='MEGET', base_url='https://meget.kiev.ua/prodazha-kvartir/')
-        db.session.add(meget)
-
-    bon_ua = Source.query.filter_by(name='BON.UA').first()
-    if not bon_ua:
-        bon_ua = Source(name='BON.UA', base_url='https://bon.ua/nedvizhimost/prodazha-kvartir')
-        db.session.add(bon_ua)
-
-    db.session.commit()
-    print("Sources seeded successfully.")
