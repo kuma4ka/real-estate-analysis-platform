@@ -1,10 +1,11 @@
 import re
 from datetime import datetime, timedelta, timezone
 from flask import Blueprint, request, jsonify, g
-from app.models import User
+from app.models import User, TokenBlocklist
 from app import db, limiter
 from app.core.auth import generate_token, require_auth
 from marshmallow import Schema, fields, ValidationError
+from sqlalchemy.exc import IntegrityError
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -140,17 +141,16 @@ def change_password():
 
     return jsonify({"message": "Password updated successfully"}), 200
 
-from app.models import TokenBlocklist
-
 @auth_bp.route('/logout', methods=['POST'])
 @require_auth
 def logout():
     jti = getattr(g, 'jti', None)
     if jti:
-        blocklisted_token = TokenBlocklist(jti=jti)
         try:
-            db.session.add(blocklisted_token)
+            db.session.add(TokenBlocklist(jti=jti))
             db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
         except Exception:
             db.session.rollback()
             return jsonify({"message": "Database error"}), 500
