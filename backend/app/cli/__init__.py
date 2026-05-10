@@ -8,7 +8,7 @@ from app.cli.maintenance import (
     purge_stale_command,
     purge_tokens_command,
 )
-from app.cli.seed import seed_users_command, seed_sources_command
+from app.cli.seed import seed_users_command
 
 __all__ = [
     'scrape_meget_command',
@@ -21,5 +21,4 @@ __all__ = [
     'purge_stale_command',
     'purge_tokens_command',
     'seed_users_command',
-    'seed_sources_command',
 ]
