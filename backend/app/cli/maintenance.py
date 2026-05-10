@@ -11,11 +11,12 @@ from app.services.bon_ua import scrape_bon_ua_listing
 @click.command(name='regeocode_all')
 @with_appcontext
 def regeocode_all_command():
-    props = Property.query.filter(Property.address.isnot(None)).all()
-    print(f"Re-geocoding {len(props)} properties...")
+    query = Property.query.filter(Property.address.isnot(None))
+    total = query.count()
+    print(f"Re-geocoding {total} properties...")
 
     count = 0
-    for p in props:
+    for p in query.yield_per(100):
         lat, lng, canonical, precision = get_lat_long(p.address)
         if lat and lng:
             p.latitude = lat
@@ -34,7 +35,7 @@ def regeocode_all_command():
             p.geocode_precision = None
 
     db.session.commit()
-    print(f"Done. Updated {count}/{len(props)}.")
+    print(f"Done. Updated {count}/{total}.")
 
 
 @click.command(name='regeocode_ids')
