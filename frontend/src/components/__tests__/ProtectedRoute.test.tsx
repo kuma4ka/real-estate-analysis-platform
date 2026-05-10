@@ -10,8 +10,10 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { describe, it, expect, vi } from 'vitest';
 import ProtectedRoute from '../ProtectedRoute';
 
+import { UserRole } from '../../types/user';
+
 type AuthState = {
-  user: { id: number; email: string; role: string } | null;
+  user: { id: number; email: string; role: UserRole } | null;
   token: string | null;
   isLoading: boolean;
   login: ReturnType<typeof vi.fn>;
@@ -32,7 +34,7 @@ const mockUseAuth = vi.mocked(useAuth);
  */
 function renderProtected(
   { user = null, token = null, isLoading = false }: Partial<AuthState> = {},
-  allowedRoles?: string[],
+  allowedRoles?: UserRole[],
 ) {
   mockUseAuth.mockReturnValue({
     user,
@@ -73,7 +75,7 @@ describe('ProtectedRoute', () => {
 
   it('renders children when user and token are present', () => {
     renderProtected({
-      user: { id: 1, email: 'test@test.com', role: 'User' },
+      user: { id: 1, email: 'test@test.com', role: UserRole.USER },
       token: 'valid-token',
     });
     expect(screen.getByText('Protected Content')).toBeInTheDocument();
@@ -89,16 +91,16 @@ describe('ProtectedRoute', () => {
 
   it('renders children when user has a role within allowedRoles', () => {
     renderProtected(
-      { user: { id: 1, email: 'analyst@test.com', role: 'Analyst' }, token: 'tok' },
-      ['Analyst', 'Admin'],
+      { user: { id: 1, email: 'analyst@test.com', role: UserRole.ANALYST }, token: 'tok' },
+      [UserRole.ANALYST, UserRole.ADMIN],
     );
     expect(screen.getByText('Protected Content')).toBeInTheDocument();
   });
 
   it('denies access and shows Access Denied when user lacks required role', () => {
     renderProtected(
-      { user: { id: 2, email: 'user@test.com', role: 'User' }, token: 'tok' },
-      ['Admin'],
+      { user: { id: 2, email: 'user@test.com', role: UserRole.USER }, token: 'tok' },
+      [UserRole.ADMIN],
     );
     expect(screen.queryByText('Protected Content')).not.toBeInTheDocument();
     expect(screen.getByText('Access Denied')).toBeInTheDocument();
@@ -106,15 +108,15 @@ describe('ProtectedRoute', () => {
 
   it('Admin can access a route restricted to Admin only', () => {
     renderProtected(
-      { user: { id: 3, email: 'admin@test.com', role: 'Admin' }, token: 'tok' },
-      ['Admin'],
+      { user: { id: 3, email: 'admin@test.com', role: UserRole.ADMIN }, token: 'tok' },
+      [UserRole.ADMIN],
     );
     expect(screen.getByText('Protected Content')).toBeInTheDocument();
   });
 
   it('renders children when no allowedRoles restriction is specified', () => {
     renderProtected({
-      user: { id: 4, email: 'anyone@test.com', role: 'User' },
+      user: { id: 4, email: 'anyone@test.com', role: UserRole.USER },
       token: 'tok',
     });
     expect(screen.getByText('Protected Content')).toBeInTheDocument();
