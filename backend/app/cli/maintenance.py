@@ -194,6 +194,14 @@ def purge_stale_command(workers, batch, dry_run):
     def check_row(row):
         prop_id, source_url, images = row.id, row.source_url, row.images
         try:
+            from urllib.parse import urlparse
+            parsed = urlparse(source_url)
+            if parsed.scheme not in ('http', 'https') or not parsed.hostname:
+                return prop_id, 0, 'invalid_url'
+            forbidden_hosts = ('localhost', '127.0.0.1', '169.254.169.254', '::1')
+            if parsed.hostname in forbidden_hosts:
+                return prop_id, 0, 'invalid_url'
+
             resp = requests.head(
                 source_url,
                 timeout=8,
