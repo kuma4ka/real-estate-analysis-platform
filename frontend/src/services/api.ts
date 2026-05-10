@@ -132,7 +132,10 @@ export const downloadStatsCsv = async (): Promise<void> => {
         a.download = 'market_analysis_export.csv';
         document.body.appendChild(a);
         a.click();
-        window.URL.revokeObjectURL(url);
+        setTimeout(() => {
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        }, 100);
     } catch (error) {
         console.error('Error downloading CSV:', error);
         throw error;
