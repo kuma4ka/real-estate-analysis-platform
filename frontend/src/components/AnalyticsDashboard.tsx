@@ -20,6 +20,7 @@ import { useAuth } from '../context/AuthContext';
 import useThrottle from '../hooks/useThrottle';
 import { exportAnalyticsPdf } from '../utils/exportAnalyticsPdf';
 import PriceForecastChart from './PriceForecastChart';
+import { UserRole } from '../types/user';
 
 const CHART_COLORS = ['#5bc0c4', '#b4ebca', '#d9f2b4', '#ffb7c3', '#d3fac7', '#9ed8db', '#a8d5ba', '#ffd4dc'];
 
@@ -46,7 +47,7 @@ const AnalyticsDashboard: React.FC = () => {
     const [drilldownOpen, setDrilldownOpen] = useState(false);
     const [cityMetric, setCityMetric] = useState<'count' | 'avg_price' | 'avg_price_per_m2'>('count');
 
-    const canExport = user?.role === 'Analyst' || user?.role === 'Admin';
+    const canExport = user?.role === UserRole.ANALYST || user?.role === UserRole.ADMIN;
 
     const exportPdfCore = async () => {
         if (isExporting || exportCooldown) return;

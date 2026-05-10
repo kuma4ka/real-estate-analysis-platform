@@ -8,7 +8,7 @@ from sqlalchemy import text
 admin_bp = Blueprint('admin', __name__)
 
 @admin_bp.route('/system', methods=['GET'])
-@require_role('Admin')
+@require_role(UserRole.ADMIN)
 def system_stats():
     """Returns sensitive system-wide metrics exclusively for Admins."""
     user_count = User.query.count()

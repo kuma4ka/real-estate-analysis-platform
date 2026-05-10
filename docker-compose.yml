@@ -37,10 +37,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    volumes:
-      - ./backend:/app
-
-
   frontend:
     build:
       context: ./frontend
@@ -66,8 +62,5 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    volumes:
-      - ./backend:/app
-
 volumes:
   postgres_data:

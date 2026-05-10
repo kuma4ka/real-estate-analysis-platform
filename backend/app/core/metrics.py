@@ -7,18 +7,24 @@ request_stats = {
     'count': 0
 }
 
+import threading
+
+_lock = threading.Lock()
+
 def record_request():
     today = datetime.now(timezone.utc).date()
-    if request_stats['date'] != today:
-        request_stats['date'] = today
-        request_stats['count'] = 0
-    request_stats['count'] += 1
+    with _lock:
+        if request_stats['date'] != today:
+            request_stats['date'] = today
+            request_stats['count'] = 0
+        request_stats['count'] += 1
 
 def get_uptime_seconds() -> float:
     return (datetime.now(timezone.utc) - START_TIME).total_seconds()
 
 def get_requests_today() -> int:
     today = datetime.now(timezone.utc).date()
-    if request_stats['date'] != today:
-        return 0
-    return request_stats['count']
+    with _lock:
+        if request_stats['date'] != today:
+            return 0
+        return request_stats['count']

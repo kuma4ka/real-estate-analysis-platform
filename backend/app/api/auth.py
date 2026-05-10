@@ -132,6 +132,9 @@ def change_password():
     if not user.check_password(validated_data['old_password']):
         return jsonify({"message": "Incorrect old password"}), 400
 
+    if validated_data['old_password'] == validated_data['new_password']:
+        return jsonify({"message": "New password must differ from the old one"}), 400
+
     user.set_password(validated_data['new_password'])
     try:
         db.session.commit()

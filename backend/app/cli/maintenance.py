@@ -11,11 +11,12 @@ from app.services.bon_ua import scrape_bon_ua_listing
 @click.command(name='regeocode_all')
 @with_appcontext
 def regeocode_all_command():
-    props = Property.query.filter(Property.address.isnot(None)).all()
-    print(f"Re-geocoding {len(props)} properties...")
+    query = Property.query.filter(Property.address.isnot(None))
+    total = query.count()
+    print(f"Re-geocoding {total} properties...")
 
     count = 0
-    for p in props:
+    for p in query.yield_per(100):
         lat, lng, canonical, precision = get_lat_long(p.address)
         if lat and lng:
             p.latitude = lat
@@ -34,7 +35,7 @@ def regeocode_all_command():
             p.geocode_precision = None
 
     db.session.commit()
-    print(f"Done. Updated {count}/{len(props)}.")
+    print(f"Done. Updated {count}/{total}.")
 
 
 @click.command(name='regeocode_ids')
@@ -194,6 +195,14 @@ def purge_stale_command(workers, batch, dry_run):
     def check_row(row):
         prop_id, source_url, images = row.id, row.source_url, row.images
         try:
+            from urllib.parse import urlparse
+            parsed = urlparse(source_url)
+            if parsed.scheme not in ('http', 'https') or not parsed.hostname:
+                return prop_id, 0, 'invalid_url'
+            forbidden_hosts = ('localhost', '127.0.0.1', '169.254.169.254', '::1')
+            if parsed.hostname in forbidden_hosts:
+                return prop_id, 0, 'invalid_url'
+
             resp = requests.head(
                 source_url,
                 timeout=8,

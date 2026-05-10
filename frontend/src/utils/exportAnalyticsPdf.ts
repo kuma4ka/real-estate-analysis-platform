@@ -142,7 +142,6 @@ export async function exportAnalyticsPdf(
     }
 
     if (y + 80 > doc.internal.pageSize.getHeight() - margin) { doc.addPage(); y = margin; }
-    if (y + 80 > doc.internal.pageSize.getHeight() - margin) { doc.addPage(); y = margin; }
     sectionTitle(t('analytics_city_metrics', 'By City'));
 
     if (refs.cityRef) {
@@ -181,7 +180,6 @@ export async function exportAnalyticsPdf(
     y = getTableFinalY() + 24;
 
     if (y + 80 > doc.internal.pageSize.getHeight() - margin) { doc.addPage(); y = margin; }
-    if (y + 80 > doc.internal.pageSize.getHeight() - margin) { doc.addPage(); y = margin; }
     sectionTitle(t('analytics_price_dist', 'Price Distribution'));
 
     if (refs.priceDistRef) {
@@ -206,7 +204,6 @@ export async function exportAnalyticsPdf(
     });
     y = getTableFinalY() + 24;
 
-    if (y + 80 > doc.internal.pageSize.getHeight() - margin) { doc.addPage(); y = margin; }
     if (y + 80 > doc.internal.pageSize.getHeight() - margin) { doc.addPage(); y = margin; }
     sectionTitle(t('analytics_by_rooms', 'By Rooms'));
 
