@@ -51,7 +51,7 @@ def regeocode_ids_command(ids_str):
         print(f"#{p.id}: Processing...")
         lat, lng, canonical, precision = get_lat_long(p.address)
         if lat and lng:
-            print(f"  ✅ Geocoded ({precision})")
+            print("  ✅ Geocoded")
             p.latitude = lat
             p.longitude = lng
             p.geocode_precision = precision
