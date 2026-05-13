@@ -225,13 +225,15 @@ class TestForecastEndpoint:
             assert len(data["historical"]) >= 1
 
     def test_forecast_city_filter_scopes_data(self, client):
-        """Forecast with city param returns city-specific result."""
+        """Forecast with city param scopes data to that city."""
         token = _register_and_login(client, "analystfc4@example.com", role="Analyst")
         _seed_properties(client, count=6)
         resp = client.get("/api/v1/stats/forecast?city=Київ", headers=_auth_headers(token))
         assert resp.status_code == 200
         data = resp.get_json()
-        assert data["city"] == "Київ"
+        assert "city" not in data  # Removed to fix Reflected XSS
+        # 6 properties seeded alternating between Kyiv and Kharkiv, so 3 for Kyiv
+        assert len(data.get("historical", [])) == 3
 
     def test_forecast_available_cities_list(self, client):
         """Forecast response always includes available_cities dropdown data."""

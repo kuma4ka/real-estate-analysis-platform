@@ -48,10 +48,10 @@ def regeocode_ids_command(ids_str):
     props = Property.query.filter(Property.id.in_(ids)).all()
 
     for p in props:
-        print(f"#{p.id}: {p.address}")
+        print(f"#{p.id}: Processing...")
         lat, lng, canonical, precision = get_lat_long(p.address)
         if lat and lng:
-            print(f"  ✅ {lat}, {lng} ({precision})")
+            print("  ✅ Geocoded")
             p.latitude = lat
             p.longitude = lng
             p.geocode_precision = precision
