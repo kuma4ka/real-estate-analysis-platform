@@ -247,6 +247,9 @@ def get_price_forecast():
     from flask import request as flask_request
     
     city_filter = flask_request.args.get('city', '').strip() or None
+    if city_filter:
+        from markupsafe import escape
+        city_filter = str(escape(city_filter))
     
     res = _compute_price_forecast(city_filter)
     if res.get('error_override'):
