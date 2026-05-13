@@ -164,7 +164,6 @@ def _compute_price_forecast(city_filter):
 
     if len(rows) < 3:
         return {
-            'city': city_filter,
             'available_cities': available_cities,
             'r_squared': 0.0,
             'slope_per_day': 0.0,
@@ -227,7 +226,6 @@ def _compute_price_forecast(city_filter):
         })
 
     return {
-        'city': city_filter,
         'available_cities': available_cities,
         'r_squared': r_squared,
         'slope_per_day': round(slope, 2),
