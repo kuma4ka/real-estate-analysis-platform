@@ -9,7 +9,7 @@ def generate_token(user_id, role):
     payload = {
         'exp': datetime.now(timezone.utc) + timedelta(days=1),
         'iat': datetime.now(timezone.utc),
-        'sub': user_id,
+        'sub': str(user_id),
         'role': role,
         'jti': str(uuid.uuid4())
     }
@@ -43,7 +43,7 @@ def require_auth(f):
         if auth_token:
             resp = decode_token(auth_token)
             if not isinstance(resp, str):
-                g.user_id = resp['sub']
+                g.user_id = int(resp['sub'])
                 g.role = resp['role']
                 g.jti = resp.get('jti')
                 return f(*args, **kwargs)
