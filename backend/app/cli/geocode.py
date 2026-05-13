@@ -60,7 +60,7 @@ def get_lat_long(address, region=None, attempt=1):
                     UA_LNG = (22.0, 40.5)
                     if not (UA_LAT[0] <= location.latitude <= UA_LAT[1] and
                             UA_LNG[0] <= location.longitude <= UA_LNG[1]):
-                        print(f"    ⚠️ Outside Ukraine: {location.latitude:.2f}, {location.longitude:.2f}")
+                        print("    ⚠️ Outside Ukraine: Coords hidden")
                         continue
 
                     if region:

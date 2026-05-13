@@ -250,7 +250,8 @@ def get_price_forecast():
     
     res = _compute_price_forecast(city_filter)
     if res.get('error_override'):
-        return jsonify({'error': res['msg']}), res['status']
+        from markupsafe import escape
+        return jsonify({'error': escape(res['msg'])}), res['status']
         
     return jsonify(res)
 
