@@ -29,7 +29,13 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     RATELIMIT_STORAGE_URL = os.getenv('RATELIMIT_STORAGE_URL', 'memory://')
 
+    CACHE_TYPE = os.getenv('CACHE_TYPE', 'SimpleCache')
+    CACHE_REDIS_URL = os.getenv('RATELIMIT_STORAGE_URL', 'redis://localhost:6379/0')
+    CACHE_DEFAULT_TIMEOUT = 600
+    CACHE_KEY_PREFIX = 'reap_'
+
 
 class TestConfig(Config):
     TESTING = True
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    CACHE_TYPE = 'SimpleCache'
