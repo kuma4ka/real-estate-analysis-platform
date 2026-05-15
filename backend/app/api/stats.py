@@ -5,11 +5,11 @@ from sqlalchemy import func, case
 from app.models import Property
 from app.api import bp
 from app.core.auth import require_role
+from app import cache
 import datetime
-from cachetools import cached, TTLCache
 
 
-@cached(cache=TTLCache(maxsize=4, ttl=600))
+@cache.cached(timeout=600, key_prefix='_compute_stats')
 def _compute_stats():
     base_query = Property.query.filter(Property.is_active == True)
     total = base_query.count()
@@ -128,7 +128,7 @@ def get_stats():
     return jsonify(_compute_stats())
 
 
-@cached(cache=TTLCache(maxsize=32, ttl=600))
+@cache.memoize(timeout=600)
 def _compute_price_forecast(city_filter):
     try:
         import numpy as np

@@ -234,7 +234,6 @@ def process_url_in_thread(url, app, scrape_func):
                     area=data.get('area'),
                     rooms=data.get('rooms'),
                     images=data.get('images'),
-                    description=f"Scraped from {data['source_website']}"
                 )
                 db.session.add(new_prop)
                 db.session.commit()

@@ -4,12 +4,14 @@ from flask_migrate import Migrate
 from flask_marshmallow import Marshmallow
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_caching import Cache
 from config import Config
 
 db = SQLAlchemy()
 migrate = Migrate()
 ma = Marshmallow()
 limiter = Limiter(key_func=get_remote_address)
+cache = Cache()
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -19,6 +21,7 @@ def create_app(config_class=Config):
     migrate.init_app(app, db)
     ma.init_app(app)
     limiter.init_app(app)
+    cache.init_app(app)
 
     # Before Request Hook for metrics
     from app.core.metrics import record_request

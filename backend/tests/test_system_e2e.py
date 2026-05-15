@@ -29,11 +29,10 @@ def client():
         # Clear limiter memory storage
         limiter.reset()
 
-        # Clear module-level TTLCaches so each test starts with fresh data
-        from app.api.stats import _compute_stats, _compute_price_forecast
-        _compute_stats.cache.clear()
-        _compute_price_forecast.cache.clear()
-        
+        # Clear flask-caching so each test starts with fresh computed data
+        from app import cache
+        cache.clear()
+
         db.create_all()
         yield app.test_client()
         db.session.remove()

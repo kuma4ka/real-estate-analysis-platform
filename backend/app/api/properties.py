@@ -152,7 +152,6 @@ def get_map_properties():
         'area': p.area,
         'rooms': p.rooms,
         'floor': p.floor,
-        'description': None,
         'images': p.images[:1] if p.images else [],
         'source_url': p.source_url,
         'created_at': p.created_at.isoformat() if p.created_at else None
