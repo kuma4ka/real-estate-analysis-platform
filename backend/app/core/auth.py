@@ -90,7 +90,7 @@ def optional_auth(f):
             token = auth_header.split(' ', 1)[1]
             payload = decode_token(token)
             if isinstance(payload, dict):
-                g.user_id = payload['sub']
+                g.user_id = int(payload['sub'])
                 g.role = payload['role']
                 g.jti = payload.get('jti')
         return f(*args, **kwargs)
