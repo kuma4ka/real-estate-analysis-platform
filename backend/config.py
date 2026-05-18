@@ -30,7 +30,11 @@ class Config:
     RATELIMIT_STORAGE_URL = os.getenv('RATELIMIT_STORAGE_URL', 'memory://')
 
     CACHE_TYPE = os.getenv('CACHE_TYPE', 'SimpleCache')
-    CACHE_REDIS_URL = os.getenv('RATELIMIT_STORAGE_URL', 'redis://localhost:6379/0')
+    _ratelimit_url = os.getenv('RATELIMIT_STORAGE_URL', 'memory://')
+    CACHE_REDIS_URL = os.getenv(
+        'CACHE_REDIS_URL',
+        _ratelimit_url if _ratelimit_url.startswith('redis') else 'redis://localhost:6379/0',
+    )
     CACHE_DEFAULT_TIMEOUT = 600
     CACHE_KEY_PREFIX = 'reap_'
 
