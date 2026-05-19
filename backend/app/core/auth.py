@@ -10,7 +10,7 @@ def generate_token(user_id, role):
         'exp': datetime.now(timezone.utc) + timedelta(days=1),
         'iat': datetime.now(timezone.utc),
         'sub': str(user_id),
-        'role': role,
+        'role': role.value if hasattr(role, 'value') else role,
         'jti': str(uuid.uuid4())
     }
     return jwt.encode(payload, current_app.config['SECRET_KEY'], algorithm='HS256')

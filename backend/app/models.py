@@ -17,7 +17,7 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(256), nullable=False)
     role = db.Column(
-        db.Enum(UserRole, name='user_role_enum', native_enum=False),
+        db.Enum(UserRole, name='user_role_enum', native_enum=False, values_callable=lambda x: [e.value for e in x]),
         nullable=False,
         default=UserRole.USER,
     )
@@ -36,7 +36,7 @@ class User(db.Model):
         return {
             'id': self.id,
             'email': self.email,
-            'role': self.role,
+            'role': self.role.value if hasattr(self.role, 'value') else self.role,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'last_login': self.last_login.isoformat() if self.last_login else None
         }
