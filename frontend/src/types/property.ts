@@ -12,7 +12,6 @@ export interface Property {
     area: number | null;
     rooms: number | null;
     floor: number | null;
-    description: string | null;
     images: string[] | null;
     source_url: string;
     created_at: string;

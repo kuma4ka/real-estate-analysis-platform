@@ -43,10 +43,6 @@ class ListingValidator:
             if price_per_sqm > MAX_PRICE_PER_SQM_USD:
                 return False, f"Price/m² too high: ${price_per_sqm:.0f}/m² (max ${MAX_PRICE_PER_SQM_USD})"
 
-        desc = data.get('description', '') or ''
-        if len(desc) > 10 and SPAM_REGEX.search(desc):
-            return False, "Spam detected in description"
-
         if area:
             if area < 8:
                 return False, f"Area too small: {area} m²"
