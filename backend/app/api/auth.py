@@ -93,7 +93,7 @@ def login():
                 "user": user.to_dict()
             }), 200
         else:
-            user.failed_login_attempts += 1
+            user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
             if user.failed_login_attempts >= 5:
                 user.locked_until = datetime.now(timezone.utc) + timedelta(minutes=15)
             db.session.commit()
