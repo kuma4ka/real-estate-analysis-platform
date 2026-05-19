@@ -40,15 +40,15 @@ def register():
     except ValidationError as err:
         return jsonify({"message": "Validation error", "errors": err.messages}), 400
 
-    if User.query.filter_by(email=validated_data['email']).first():
-        return jsonify({"message": "User with this email already exists"}), 409
-
     new_user = User(email=validated_data['email'])
     new_user.set_password(validated_data['password'])
 
     try:
         db.session.add(new_user)
         db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({"message": "User with this email already exists"}), 409
     except Exception:
         db.session.rollback()
         return jsonify({"message": "Database error"}), 500

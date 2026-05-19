@@ -68,13 +68,15 @@ def require_role(role_name):
             live_role = user.role
             g.role = live_role
 
-            if live_role == UserRole.ADMIN:
-                pass
-            elif live_role == role_name:
-                pass
-            elif role_name == UserRole.USER and live_role in (UserRole.USER, UserRole.ANALYST, UserRole.ADMIN):
-                pass
-            else:
+            ROLE_HIERARCHY = {
+                UserRole.GUEST:   {UserRole.GUEST, UserRole.USER, UserRole.ANALYST, UserRole.ADMIN},
+                UserRole.USER:    {UserRole.USER, UserRole.ANALYST, UserRole.ADMIN},
+                UserRole.ANALYST: {UserRole.ANALYST, UserRole.ADMIN},
+                UserRole.ADMIN:   {UserRole.ADMIN},
+            }
+
+            allowed = ROLE_HIERARCHY.get(role_name, {role_name})
+            if live_role not in allowed:
                 return jsonify({'message': 'Insufficient permissions'}), 403
 
             return f(*args, **kwargs)

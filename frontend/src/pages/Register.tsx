@@ -5,6 +5,7 @@ import AuthLayout from '../components/AuthLayout';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { UserRole } from '../types/user';
+import { validatePassword } from '../utils/validatePassword';
 
 const Register: React.FC = () => {
   const { t } = useTranslation();
@@ -19,8 +20,9 @@ const Register: React.FC = () => {
     e.preventDefault();
     setError('');
     
-    if (password.length < 6) {
-      setError(t('register_error_password_length', 'Password must be at least 6 characters long'));
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      setError(t('register_error_password_complexity', passwordError));
       return;
     }
 

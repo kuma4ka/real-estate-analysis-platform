@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch
-from app.services.currency import convert_to_usd, get_nbu_rates, rates_cache
+from app.services.currency import convert_to_usd, get_nbu_rates
 
 
 MOCK_RATES = {'USD': 40.0, 'EUR': 44.0}
@@ -43,15 +43,23 @@ class TestConvertToUsd:
 
 class TestGetNbuRatesFallback:
     def test_fallback_on_request_error(self):
+        from app import create_app
+        app = create_app()
         with patch('app.services.currency.requests.get', side_effect=Exception("network error")):
-            rates_cache.clear()
-            rates = get_nbu_rates()
-            assert 'USD' in rates
-            assert rates['USD'] > 0
+            with app.app_context():
+                from app import cache
+                cache.delete('nbu_rates')
+                rates = get_nbu_rates()
+                assert 'USD' in rates
+                assert rates['USD'] > 0
 
     def test_fallback_values_are_positive(self):
+        from app import create_app
+        app = create_app()
         with patch('app.services.currency.requests.get', side_effect=Exception("fail")):
-            rates_cache.clear()
-            rates = get_nbu_rates()
-            assert rates['USD'] > 0
-            assert rates['EUR'] > 0
+            with app.app_context():
+                from app import cache
+                cache.delete('nbu_rates')
+                rates = get_nbu_rates()
+                assert rates['USD'] > 0
+                assert rates['EUR'] > 0

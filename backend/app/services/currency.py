@@ -1,43 +1,43 @@
 import requests
-from cachetools import TTLCache, cached
 import logging
 
 logger = logging.getLogger(__name__)
 
-# Cache exchange rates for 12 hours (43200 seconds)
-# NBU updates rates once a day.
-rates_cache = TTLCache(maxsize=1, ttl=43200)
-
-@cached(cache=rates_cache)
 def get_nbu_rates() -> dict:
     """
     Fetches official exchange rates from the National Bank of Ukraine.
+    Cached for 12 hours (NBU updates rates once a day).
     Returns a dictionary of currency code to UAH rate.
     Example: {'USD': 41.5, 'EUR': 44.2}
     """
+    from app import cache
+    cached_rates = cache.get('nbu_rates')
+    if cached_rates is not None:
+        return cached_rates
+
     try:
         url = "https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?json"
         response = requests.get(url, timeout=10)
         response.raise_for_status()
         data = response.json()
-        
+
         rates = {}
         for item in data:
             if item.get('cc') in ['USD', 'EUR']:
                 rates[item['cc']] = item['rate']
-        
+
         if 'USD' not in rates:
             logger.warning("NBU API did not return USD rate. Using fallback.")
             rates['USD'] = 41.0
-            
+
         if 'EUR' not in rates:
             logger.warning("NBU API did not return EUR rate. Using fallback.")
             rates['EUR'] = 44.0
-            
+
+        cache.set('nbu_rates', rates, timeout=43_200)
         return rates
     except Exception as e:
         logger.error(f"Failed to fetch NBU rates: {e}")
-        # Fallback rates in case NBU API is down
         return {'USD': 41.0, 'EUR': 44.0}
 
 
