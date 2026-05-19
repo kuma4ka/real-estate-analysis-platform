@@ -29,7 +29,6 @@ const mockProperty: Property = {
   area: 45,
   rooms: 2,
   floor: 3,
-  description: 'A test apartment',
   images: ['/test-image.jpg'],
   source_url: 'http://test.com',
   created_at: '2023-01-01T00:00:00Z',

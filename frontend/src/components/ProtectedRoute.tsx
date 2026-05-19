@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types/user';
 
@@ -10,7 +10,6 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
   const { user, token, isLoading } = useAuth();
-  const navigate = useNavigate();
 
   if (isLoading) {
     return (
@@ -31,12 +30,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
         <p className="text-gray-600 dark:text-gray-300">
           You do not have the required role ({allowedRoles.join(' or ')}) to view this page.
         </p>
-        <button
-          onClick={() => navigate('/')}
+        <Link
+          to="/"
           className="bg-blue-500 text-white px-4 py-2 rounded shadow hover:bg-blue-600"
         >
           Go Back Home
-        </button>
+        </Link>
       </div>
     );
   }

@@ -1,4 +1,5 @@
 import type { StatsData } from '../services/api';
+import { formatPrice } from './format';
 
 interface ChartRefs {
     roomsRef: HTMLElement | null;
@@ -9,12 +10,6 @@ interface ChartRefs {
 }
 
 type TFunction = (key: string, fallback?: string) => string;
-
-
-const formatPrice = (value: number) => {
-    if (value >= 1000) return `$${(value / 1000).toFixed(0)}k`;
-    return `$${value}`;
-};
 
 const captureElement = async (
     el: HTMLElement,
