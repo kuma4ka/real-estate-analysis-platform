@@ -4,6 +4,7 @@ import { fetchWithAuth, API_BASE_URL } from '../services/api';
 import AdminStats from '../components/AdminStats';
 import { useTranslation } from 'react-i18next';
 import { UserRole } from '../types/user';
+import { validatePassword } from '../utils/validatePassword';
 
 const Profile: React.FC = () => {
   const { user } = useAuth();
@@ -25,8 +26,9 @@ const Profile: React.FC = () => {
       return;
     }
 
-    if (newPassword.length < 6) {
-      setStatus({ type: 'error', message: t('error_password_length', 'New password must be at least 6 characters') });
+    const passwordError = validatePassword(newPassword);
+    if (passwordError) {
+      setStatus({ type: 'error', message: t('error_password_complexity', passwordError) });
       return;
     }
 
