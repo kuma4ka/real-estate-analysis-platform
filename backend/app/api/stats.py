@@ -6,7 +6,9 @@ from app.models import Property, UserRole
 from app.api import bp
 from app.core.auth import require_role
 from app import cache
+from app.services.cities import CITIES
 import datetime
+from flask import jsonify, Response, request
 
 
 @cache.cached(timeout=600, key_prefix='_compute_stats')
@@ -242,14 +244,18 @@ def get_price_forecast():
     Query params:
       city (optional) – filter to a specific city; omit for global data.
     """
-    from flask import request as flask_request
+    city_filter = request.args.get('city', '').strip() or None
 
-    city_filter = flask_request.args.get('city', '').strip() or None
-    
+    # Validate city against the known set to prevent unbounded cache key growth.
+    # An attacker could otherwise exhaust the cache store by sending arbitrary
+    # ?city= values, each creating a new memoize entry.
+    if city_filter and city_filter not in CITIES:
+        return jsonify({'error': f"Unknown city: '{city_filter}'"}), 400
+
     res = _compute_price_forecast(city_filter)
     if res.get('error_override'):
         return jsonify({'error': 'Forecast service unavailable'}), res['status']
-        
+
     return jsonify(res)
 
 
