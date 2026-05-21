@@ -5,7 +5,6 @@ from app.models import Property
 class PropertySchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Property
-        load_instance = True
         fields = (
             'id', 'title', 'price', 'currency',
             'address', 'latitude', 'longitude', 'city', 'district',
