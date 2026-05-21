@@ -263,29 +263,35 @@ def get_price_forecast():
 @bp.route('/stats/export', methods=['GET'])
 @require_role(UserRole.ANALYST)
 def export_stats_csv():
-    props = (
-        Property.query
-        .filter(Property.is_active == True)
-        .order_by(Property.created_at.desc())
-        .limit(10_000)
-        .all()
-    )
+    """Stream active properties as a CSV without loading all rows into RAM."""
+    CHUNK_SIZE = 500
 
-    buf = io.StringIO()
-    writer = csv.writer(buf)
-    writer.writerow([
-        'id', 'title', 'price', 'currency', 'city', 'district',
-        'area', 'rooms', 'floor', 'address', 'created_at',
-    ])
-    for p in props:
-        writer.writerow([
-            p.id, p.title, p.price, p.currency, p.city, p.district,
-            p.area, p.rooms, p.floor, p.address,
-            p.created_at.isoformat() if p.created_at else None,
-        ])
+    def generate():
+        header = ['id', 'title', 'price', 'currency', 'city', 'district',
+                  'area', 'rooms', 'floor', 'address', 'created_at']
+        buf = io.StringIO()
+        writer = csv.writer(buf)
+        writer.writerow(header)
+        yield buf.getvalue()
+
+        query = (
+            Property.query
+            .filter(Property.is_active == True)
+            .order_by(Property.created_at.desc())
+            .yield_per(CHUNK_SIZE)
+        )
+        for p in query:
+            buf = io.StringIO()
+            writer = csv.writer(buf)
+            writer.writerow([
+                p.id, p.title, p.price, p.currency, p.city, p.district,
+                p.area, p.rooms, p.floor, p.address,
+                p.created_at.isoformat() if p.created_at else None,
+            ])
+            yield buf.getvalue()
 
     return Response(
-        buf.getvalue(),
+        generate(),
         mimetype='text/csv',
         headers={'Content-Disposition': 'attachment; filename=market_export.csv'},
-    )
+    )
