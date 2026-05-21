@@ -2,7 +2,7 @@ import csv
 import io
 from flask import jsonify, Response
 from sqlalchemy import func, case
-from app.models import Property
+from app.models import Property, UserRole
 from app.api import bp
 from app.core.auth import require_role
 from app import cache
@@ -123,7 +123,7 @@ def _compute_stats():
     }
 
 @bp.route('/stats', methods=['GET'])
-@require_role('Analyst')
+@require_role(UserRole.ANALYST)
 def get_stats():
     return jsonify(_compute_stats())
 
@@ -234,7 +234,7 @@ def _compute_price_forecast(city_filter):
     }
 
 @bp.route('/stats/forecast', methods=['GET'])
-@require_role('Analyst')
+@require_role(UserRole.ANALYST)
 def get_price_forecast():
     """
     Linear-regression price forecast for the next 30 days.
@@ -255,7 +255,7 @@ def get_price_forecast():
 
 
 @bp.route('/stats/export', methods=['GET'])
-@require_role('Analyst')
+@require_role(UserRole.ANALYST)
 def export_stats_csv():
     props = (
         Property.query

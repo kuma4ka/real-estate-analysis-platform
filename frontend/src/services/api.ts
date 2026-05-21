@@ -2,7 +2,12 @@ import type { PropertiesResponse, PropertyFilters, Property } from '../types/pro
 
 export const API_BASE_URL = '/api/v1';
 
-// Helper to include JWT token
+// SECURITY NOTE: The JWT token is stored in sessionStorage, which is
+// readable by any JavaScript running on the page (i.e. vulnerable to XSS).
+// The industry-standard alternative is an HttpOnly cookie managed by the
+// backend, which is immune to JS access. Migrating to cookies requires
+// backend changes (Set-Cookie on login, cookie-based CSRF protection).
+// Accepted as a known trade-off for this SPA architecture.
 export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
     const token = sessionStorage.getItem('token');
     const headers = new Headers(options.headers || {});

@@ -9,6 +9,7 @@ from app.core.auth import optional_auth
 from app.services.cities import CITIES
 
 MAX_MAP_PINS = int(os.getenv('MAX_MAP_PINS', '5000'))
+MAX_PAGE_SIZE = 100
 
 
 def _resolve_city_alias(name):
@@ -37,8 +38,8 @@ def health_check():
 @bp.route('/properties', methods=['GET'])
 @optional_auth
 def get_properties():
-    page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 20, type=int)
+    page = max(1, request.args.get('page', 1, type=int))
+    per_page = min(request.args.get('per_page', 20, type=int), MAX_PAGE_SIZE)
     city = request.args.get('city')
     rooms = request.args.get('rooms', type=int)
     price_min = request.args.get('price_min', type=float)
