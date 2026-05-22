@@ -3,7 +3,7 @@ from app.models import User, Property, UserRole
 from app.core.auth import require_role
 from app.core.metrics import get_uptime_seconds, get_requests_today
 from app import db
-from sqlalchemy import text
+from sqlalchemy import func, text
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -15,18 +15,24 @@ def system_stats():
     property_count = Property.query.count()
     active_property_count = Property.query.filter(Property.is_active == True).count()
 
-    roles = [UserRole.ADMIN, UserRole.ANALYST, UserRole.USER, UserRole.GUEST]
-    role_dist = {}
-    for role in roles:
-        role_dist[role] = User.query.filter_by(role=role).count()
-        
+    # Single aggregated query instead of one COUNT per role
+    role_rows = (
+        db.session.query(User.role, func.count(User.id))
+        .group_by(User.role)
+        .all()
+    )
+    # Initialise all known roles to 0, then fill in actual counts
+    role_dist = {role.value: 0 for role in UserRole}
+    for role, count in role_rows:
+        role_dist[role.value] = count
+
     # Health checks and metrics
     try:
         db.session.execute(text('SELECT 1'))
         db_status = 'Connected'
     except Exception:
         db_status = 'Error'
-        
+
     return jsonify({
         "total_users": user_count,
         "total_properties": property_count,

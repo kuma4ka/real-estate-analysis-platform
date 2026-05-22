@@ -14,11 +14,11 @@ def seed_users_command():
     created = 0
 
     for role in roles:
-        email = os.environ.get(f'SEED_{role.upper()}_EMAIL')
-        password = os.environ.get(f'SEED_{role.upper()}_PASSWORD')
+        email = os.environ.get(f'SEED_{role.name.upper()}_EMAIL')
+        password = os.environ.get(f'SEED_{role.name.upper()}_PASSWORD')
 
         if not email or not password:
-            print(f"Skipping {role} creation: Missing SEED_{role.upper()}_EMAIL or SEED_{role.upper()}_PASSWORD in .env")
+            print(f"Skipping {role} creation: Missing SEED_{role.name.upper()}_EMAIL or SEED_{role.name.upper()}_PASSWORD in .env")
             continue
 
         existing_user = User.query.filter_by(email=email).first()

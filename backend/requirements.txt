@@ -12,7 +12,6 @@ beautifulsoup4==4.14.2
 cloudscraper
 geopy
 numpy==2.2.5
-cachetools==5.3.3
 PyJWT>=2.12.0
 Flask-Limiter
 flask-caching>=2.3.0
