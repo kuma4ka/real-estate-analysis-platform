@@ -2,7 +2,7 @@ import time
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from geopy.geocoders import Photon
+from geopy.geocoders import Photon, Nominatim
 from geopy.exc import GeocoderTimedOut, GeocoderServiceError
 from geopy.distance import geodesic
 
@@ -12,11 +12,24 @@ from app.services.cities import get_center, normalize_city, get_region_center
 from app.services.address_normalizer import AddressNormalizer
 from app.services.listing_validator import ListingValidator
 
+_photon = Photon(user_agent="real_estate_platform_v1", timeout=10)
+_nominatim = Nominatim(user_agent="real_estate_platform_v1", timeout=10)
+
+
+def _geocode_with_fallback(query: str):
+    """Try Photon first; fall back to Nominatim on any network/timeout error."""
+    for geolocator, name in ((_photon, "Photon"), (_nominatim, "Nominatim")):
+        try:
+            location = geolocator.geocode(query)
+            if location:
+                return location
+        except (GeocoderTimedOut, GeocoderServiceError) as e:
+            print(f"    ⚠️ {name} error: {e}")
+    return None
+
 
 def get_lat_long(address, region=None, attempt=1):
     try:
-        geolocator = Photon(user_agent="meget_scraper_v3")
-
         candidates = AddressNormalizer.normalize(address)
         if not candidates:
             candidates = [address]
@@ -39,63 +52,58 @@ def get_lat_long(address, region=None, attempt=1):
             region = region.strip()
 
         for candidate in candidates:
-            try:
-                query_parts = [candidate]
+            query_parts = [candidate]
 
-                if expected_city and expected_city not in candidate:
-                    query_parts.append(expected_city)
-                if region and region not in candidate:
-                    query_parts.append(region)
-                if "Україна" not in candidate and "Ukraine" not in candidate:
-                    query_parts.append("Україна")
+            if expected_city and expected_city not in candidate:
+                query_parts.append(expected_city)
+            if region and region not in candidate:
+                query_parts.append(region)
+            if "Україна" not in candidate and "Ukraine" not in candidate:
+                query_parts.append("Україна")
 
-                query = ", ".join(query_parts)
-                query = ", ".join(p.strip() for p in query.split(",") if p.strip())
-                print(f"    Geocoding: '{query}'")
+            query = ", ".join(query_parts)
+            query = ", ".join(p.strip() for p in query.split(",") if p.strip())
+            print(f"    Geocoding: '{query}'")
 
-                location = geolocator.geocode(query, timeout=10)
+            location = _geocode_with_fallback(query)
 
-                if location:
-                    UA_LAT = (44.0, 52.5)
-                    UA_LNG = (22.0, 40.5)
-                    if not (UA_LAT[0] <= location.latitude <= UA_LAT[1] and
-                            UA_LNG[0] <= location.longitude <= UA_LNG[1]):
-                        print("    ⚠️ Outside Ukraine: Coords hidden")
-                        continue
+            if location:
+                UA_LAT = (44.0, 52.5)
+                UA_LNG = (22.0, 40.5)
+                if not (UA_LAT[0] <= location.latitude <= UA_LAT[1] and
+                        UA_LNG[0] <= location.longitude <= UA_LNG[1]):
+                    print("    ⚠️ Outside Ukraine: Coords hidden")
+                    continue
 
-                    if region:
-                        region_result = get_region_center(region)
-                        if region_result:
-                            _, reg_city = region_result
-                            from app.services.cities import CITIES
-                            city_info = CITIES.get(reg_city, {})
-                            all_names = [reg_city.lower()] + [a.lower() for a in city_info.get('aliases', [])]
-                            loc_addr_lower = location.address.lower()
-                            if not any(name in loc_addr_lower for name in all_names):
-                                print(f"    ⚠️ Region mismatch: {location.address}")
-                                continue
+                if region:
+                    region_result = get_region_center(region)
+                    if region_result:
+                        _, reg_city = region_result
+                        from app.services.cities import CITIES
+                        city_info = CITIES.get(reg_city, {})
+                        all_names = [reg_city.lower()] + [a.lower() for a in city_info.get('aliases', [])]
+                        loc_addr_lower = location.address.lower()
+                        if not any(name in loc_addr_lower for name in all_names):
+                            print(f"    ⚠️ Region mismatch: {location.address}")
+                            continue
 
-                    if expected_city:
-                        center = get_center(expected_city)
-                        if center:
-                            dist_km = geodesic((location.latitude, location.longitude), center).km
-                            if dist_km > 30:
-                                print(f"    ⚠️ Too far ({dist_km:.0f}km from {expected_city})")
-                                continue
-                    elif region:
-                        region_result = get_region_center(region)
-                        if region_result:
-                            reg_center, reg_city = region_result
-                            dist_km = geodesic((location.latitude, location.longitude), reg_center).km
-                            if dist_km > 100:
-                                print(f"    ⚠️ Too far ({dist_km:.0f}km from {reg_city}, {region})")
-                                continue
+                if expected_city:
+                    center = get_center(expected_city)
+                    if center:
+                        dist_km = geodesic((location.latitude, location.longitude), center).km
+                        if dist_km > 30:
+                            print(f"    ⚠️ Too far ({dist_km:.0f}km from {expected_city})")
+                            continue
+                elif region:
+                    region_result = get_region_center(region)
+                    if region_result:
+                        reg_center, reg_city = region_result
+                        dist_km = geodesic((location.latitude, location.longitude), reg_center).km
+                        if dist_km > 100:
+                            print(f"    ⚠️ Too far ({dist_km:.0f}km from {reg_city}, {region})")
+                            continue
 
-                    return location.latitude, location.longitude, location.address, "exact"
-
-            except (GeocoderTimedOut, GeocoderServiceError) as e:
-                print(f"    ⚠️ Photon error: {e}")
-                continue
+                return location.latitude, location.longitude, location.address, "exact"
 
         if region:
             region_result = get_region_center(region)
@@ -108,6 +116,7 @@ def get_lat_long(address, region=None, attempt=1):
     except Exception as e:
         print(f"⚠️ Geocoding error: {e}")
         return None, None, None, None
+
 
 
 def process_url_in_thread(url, app, scrape_func):
