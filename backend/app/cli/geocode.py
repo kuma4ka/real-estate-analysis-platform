@@ -1,8 +1,9 @@
 import time
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from threading import Lock
 
-from geopy.geocoders import Photon, Nominatim
+from geopy.geocoders import ArcGIS
 from geopy.exc import GeocoderTimedOut, GeocoderServiceError
 from geopy.distance import geodesic
 
@@ -12,19 +13,16 @@ from app.services.cities import get_center, normalize_city, get_region_center
 from app.services.address_normalizer import AddressNormalizer
 from app.services.listing_validator import ListingValidator
 
-_photon = Photon(user_agent="real_estate_platform_v1", timeout=10)
-_nominatim = Nominatim(user_agent="real_estate_platform_v1", timeout=10)
-
+_arcgis = ArcGIS(timeout=10)
 
 def _geocode_with_fallback(query: str):
-    """Try Photon first; fall back to Nominatim on any network/timeout error."""
-    for geolocator, name in ((_photon, "Photon"), (_nominatim, "Nominatim")):
-        try:
-            location = geolocator.geocode(query)
-            if location:
-                return location
-        except (GeocoderTimedOut, GeocoderServiceError) as e:
-            print(f"    ⚠️ {name} error: {e}")
+    """Use ArcGIS as the primary free geocoder to avoid strict Nominatim/Photon limits."""
+    try:
+        location = _arcgis.geocode(query)
+        if location:
+            return location
+    except (GeocoderTimedOut, GeocoderServiceError, Exception) as e:
+        print(f"    ⚠️ ArcGIS error: {e}")
     return None
 
 

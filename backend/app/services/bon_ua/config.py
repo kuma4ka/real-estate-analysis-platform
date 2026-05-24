@@ -1,1 +1,1 @@
-BASE_URL = "https://bon.ua"
+BASE_URL = "https://bon.ua/nedvizhimost/prodazha-kvartir"
