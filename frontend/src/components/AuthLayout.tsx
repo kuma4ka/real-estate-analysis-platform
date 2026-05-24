@@ -49,9 +49,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
             </div>
             
             <Link to="/" className="absolute top-6 left-6 flex items-center gap-2 text-text-muted hover:text-primary transition-colors z-10">
-                <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-                    <span className="text-lg">🏠</span>
-                </div>
+                <img src="/logo.svg" alt="Logo" className="w-8 h-8 rounded-lg" />
                 <span className="font-semibold">{t('app_title', 'Real Estate Analyzer')}</span>
             </Link>
 
