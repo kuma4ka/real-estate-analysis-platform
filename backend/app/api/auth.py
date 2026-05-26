@@ -152,6 +152,12 @@ def logout():
         try:
             db.session.add(TokenBlocklist(jti=jti))
             db.session.commit()
+            # Immediately mark this JTI as revoked in the cache so that any
+            # in-flight request using the same token is rejected right away,
+            # rather than waiting for the 60-second negative-cache TTL to expire.
+            from app import cache
+            cache_key = f'blocklist_jti_{jti}'
+            cache.set(cache_key, True, timeout=86_400)  # 24 h safety ceiling
         except IntegrityError:
             db.session.rollback()
         except Exception:
