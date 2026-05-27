@@ -1,4 +1,4 @@
-import time
+﻿import time
 import click
 from flask.cli import with_appcontext
 
@@ -13,7 +13,7 @@ from app.services.bon_ua import scrape_bon_ua_listing
 def regeocode_all_command():
     query = Property.query.filter(Property.address.isnot(None))
     total = query.count()
-    print(f"Re-geocoding {total} properties...")
+    click.echo(f"Re-geocoding {total} properties...")
 
     count = 0
     for p in query.yield_per(100):
@@ -27,7 +27,7 @@ def regeocode_all_command():
             count += 1
             if count % 10 == 0:
                 db.session.commit()
-                print(f"Updated {count}")
+                click.echo(f"Updated {count}")
                 time.sleep(1)
         else:
             p.latitude = None
@@ -35,7 +35,7 @@ def regeocode_all_command():
             p.geocode_precision = None
 
     db.session.commit()
-    print(f"Done. Updated {count}/{total}.")
+    click.echo(f"Done. Updated {count}/{total}.")
 
 
 @click.command(name='regeocode_ids')
@@ -43,28 +43,28 @@ def regeocode_all_command():
 @with_appcontext
 def regeocode_ids_command(ids_str):
     ids = [int(i.strip()) for i in ids_str.split(',')]
-    print(f"Re-geocoding {len(ids)} properties: {ids}")
+    click.echo(f"Re-geocoding {len(ids)} properties: {ids}")
 
     props = Property.query.filter(Property.id.in_(ids)).all()
 
     for p in props:
-        print(f"#{p.id}: Processing...")
+        click.echo(f"#{p.id}: Processing...")
         lat, lng, canonical, precision = get_lat_long(p.address)
         if lat and lng:
-            print("  ✅ Geocoded")
+            click.echo("  âœ… Geocoded")
             p.latitude = lat
             p.longitude = lng
             p.geocode_precision = precision
             if canonical:
                 p.address = canonical
         else:
-            print("  ❌ Failed")
+            click.echo("  âŒ Failed")
             p.latitude = None
             p.longitude = None
             p.geocode_precision = None
 
     db.session.commit()
-    print("Done.")
+    click.echo("Done.")
 
 
 @click.command('backfill-images')
@@ -83,14 +83,14 @@ def backfill_images(limit):
         query = query.limit(limit)
 
     props = query.all()
-    print(f"Found {len(props)} properties without images.")
+    click.echo(f"Found {len(props)} properties without images.")
 
     updated = 0
     for i, p in enumerate(props, 1):
-        print(f"[{i}/{len(props)}] #{p.id}: {p.source_url}")
+        click.echo(f"[{i}/{len(props)}] #{p.id}: {p.source_url}")
         soup = fetch_html(p.source_url)
         if not soup:
-            print("  ⚠ Could not fetch page")
+            click.echo("  âš  Could not fetch page")
             time.sleep(1)
             continue
 
@@ -100,9 +100,9 @@ def backfill_images(limit):
         if images:
             p.images = images
             updated += 1
-            print(f"  ✅ Found {len(images)} images")
+            click.echo(f"  âœ… Found {len(images)} images")
         else:
-            print("  ❌ No images found")
+            click.echo("  âŒ No images found")
 
         if i % 25 == 0:
             db.session.commit()
@@ -110,7 +110,7 @@ def backfill_images(limit):
         time.sleep(1)
 
     db.session.commit()
-    print(f"\nDone. Updated {updated}/{len(props)} properties.")
+    click.echo(f"\nDone. Updated {updated}/{len(props)} properties.")
 
 
 @click.command('convert-currencies')
@@ -120,7 +120,7 @@ def convert_currencies_command():
     from app.services.currency import convert_to_usd
 
     props = Property.query.filter(Property.currency != 'USD').all()
-    print(f"Found {len(props)} properties with non-USD currencies.")
+    click.echo(f"Found {len(props)} properties with non-USD currencies.")
 
     updated = 0
     for i, p in enumerate(props, 1):
@@ -135,13 +135,13 @@ def convert_currencies_command():
         p.currency = 'USD'
         updated += 1
 
-        print(f"[{i}/{len(props)}] #{p.id}: {old_price} {old_curr} -> {new_price:.0f} USD")
+        click.echo(f"[{i}/{len(props)}] #{p.id}: {old_price} {old_curr} -> {new_price:.0f} USD")
 
         if i % 100 == 0:
             db.session.commit()
 
     db.session.commit()
-    print(f"\nDone. Converted {updated} properties to USD.")
+    click.echo(f"\nDone. Converted {updated} properties to USD.")
 
 
 @click.command('rescrape-duplicates')
@@ -158,7 +158,7 @@ def rescrape_duplicates_command(min_count, workers):
     ).group_by(Property.price).having(sqlfunc.count(Property.id) >= min_count).all()
 
     bad_prices = {r[0] for r in duplicate_prices}
-    print(f"Found {len(bad_prices)} suspicious price value(s): {[round(p, 0) for p in bad_prices]}")
+    click.echo(f"Found {len(bad_prices)} suspicious price value(s): {[round(p, 0) for p in bad_prices]}")
 
     urls = [
         p.source_url for p in Property.query.filter(
@@ -166,7 +166,7 @@ def rescrape_duplicates_command(min_count, workers):
             Property.price.in_(list(bad_prices)),
         ).all()
     ]
-    print(f"Queued {len(urls)} listings for re-scraping...")
+    click.echo(f"Queued {len(urls)} listings for re-scraping...")
 
     _execute_scraping(urls, workers, scrape_bon_ua_listing)
 
@@ -183,14 +183,14 @@ def purge_stale_command(workers, batch, dry_run):
 
     DEAD_STATUSES = {404, 410}
 
-    # Load only the fields needed — plain tuples, not ORM objects, to avoid cross-thread issues
+    # Load only the fields needed â€” plain tuples, not ORM objects, to avoid cross-thread issues
     rows = db.session.execute(
         db.select(Property.id, Property.source_url, Property.images)
         .where(Property.is_active == True)
     ).all()
 
     total = len(rows)
-    print(f"Checking {total} active listings (workers={workers}, dry_run={dry_run})...")
+    click.echo(f"Checking {total} active listings (workers={workers}, dry_run={dry_run})...")
 
     def check_row(row):
         prop_id, source_url, images = row.id, row.source_url, row.images
@@ -235,12 +235,12 @@ def purge_stale_command(workers, batch, dry_run):
 
             if reason in ('dead_url', 'dead_image'):
                 dead_ids.append(prop_id)
-                print(f"  DEAD #{prop_id} -> HTTP {status} ({reason})")
+                click.echo(f"  DEAD #{prop_id} -> HTTP {status} ({reason})")
 
             if checked % 200 == 0:
-                print(f"  [{checked}/{total}] checked -- {len(dead_ids)} dead so far")
+                click.echo(f"  [{checked}/{total}] checked -- {len(dead_ids)} dead so far")
 
-    print(f"\n{len(dead_ids)} listings to deactivate out of {total} checked.")
+    click.echo(f"\n{len(dead_ids)} listings to deactivate out of {total} checked.")
 
     if not dry_run and dead_ids:
         for i in range(0, len(dead_ids), batch):
@@ -251,11 +251,11 @@ def purge_stale_command(workers, batch, dry_run):
                 .values(is_active=False)
             )
             db.session.commit()
-            print(f"  Committed batch {i // batch + 1}: {len(chunk)} listings deactivated")
+            click.echo(f"  Committed batch {i // batch + 1}: {len(chunk)} listings deactivated")
 
-    print(f"\nDone. Checked {checked}, deactivated {len(dead_ids)} listings.")
+    click.echo(f"\nDone. Checked {checked}, deactivated {len(dead_ids)} listings.")
     if dry_run:
-        print("  (dry-run: no DB changes made)")
+        click.echo("  (dry-run: no DB changes made)")
 
 
 @click.command('purge-tokens')
@@ -272,4 +272,4 @@ def purge_tokens_command():
     deleted_count = db.session.query(TokenBlocklist).filter(TokenBlocklist.created_at < expiration_threshold).delete()
     db.session.commit()
     
-    print(f"Purged {deleted_count} expired tokens from blocklist.")
+    click.echo(f"Purged {deleted_count} expired tokens from blocklist.")

@@ -1,4 +1,6 @@
 import time
+import logging
+import click
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
@@ -14,6 +16,7 @@ from app.services.address_normalizer import AddressNormalizer
 from app.services.listing_validator import ListingValidator
 
 _arcgis = ArcGIS(timeout=10)
+logger = logging.getLogger(__name__)
 
 def _geocode_with_fallback(query: str):
     """Use ArcGIS as the primary free geocoder to avoid strict Nominatim/Photon limits."""
@@ -22,7 +25,7 @@ def _geocode_with_fallback(query: str):
         if location:
             return location
     except (GeocoderTimedOut, GeocoderServiceError, Exception) as e:
-        print(f"    ⚠️ ArcGIS error: {e}")
+        logger.warning("ArcGIS geocoding error: %s", e)
     return None
 
 
@@ -44,7 +47,7 @@ def get_lat_long(address, region=None, attempt=1):
             if canonical == expected_city:
                 center = get_center(expected_city)
                 if center:
-                    return center[0], center[1], f"{expected_city}, Україна", "city"
+                    return center[0], center[1], f"{expected_city}, Ð£ÐºÑ€Ð°Ñ—Ð½Ð°", "city"
 
         if region:
             region = region.strip()
@@ -56,12 +59,12 @@ def get_lat_long(address, region=None, attempt=1):
                 query_parts.append(expected_city)
             if region and region not in candidate:
                 query_parts.append(region)
-            if "Україна" not in candidate and "Ukraine" not in candidate:
-                query_parts.append("Україна")
+            if "Ð£ÐºÑ€Ð°Ñ—Ð½Ð°" not in candidate and "Ukraine" not in candidate:
+                query_parts.append("Ð£ÐºÑ€Ð°Ñ—Ð½Ð°")
 
             query = ", ".join(query_parts)
             query = ", ".join(p.strip() for p in query.split(",") if p.strip())
-            print(f"    Geocoding: '{query}'")
+            logger.debug("Geocoding query: %s", query)
 
             location = _geocode_with_fallback(query)
 
@@ -70,7 +73,7 @@ def get_lat_long(address, region=None, attempt=1):
                 UA_LNG = (22.0, 40.5)
                 if not (UA_LAT[0] <= location.latitude <= UA_LAT[1] and
                         UA_LNG[0] <= location.longitude <= UA_LNG[1]):
-                    print("    ⚠️ Outside Ukraine: Coords hidden")
+                    logger.debug("Geocode result outside Ukraine bounds — skipping")
                     continue
 
                 if region:
@@ -82,7 +85,7 @@ def get_lat_long(address, region=None, attempt=1):
                         all_names = [reg_city.lower()] + [a.lower() for a in city_info.get('aliases', [])]
                         loc_addr_lower = location.address.lower()
                         if not any(name in loc_addr_lower for name in all_names):
-                            print(f"    ⚠️ Region mismatch: {location.address}")
+                            logger.debug("Region mismatch for geocode result: %s", location.address)
                             continue
 
                 if expected_city:
@@ -90,7 +93,7 @@ def get_lat_long(address, region=None, attempt=1):
                     if center:
                         dist_km = geodesic((location.latitude, location.longitude), center).km
                         if dist_km > 30:
-                            print(f"    ⚠️ Too far ({dist_km:.0f}km from {expected_city})")
+                            logger.debug("Geocode too far (%.0f km from %s) — skipping", dist_km, expected_city)
                             continue
                 elif region:
                     region_result = get_region_center(region)
@@ -98,7 +101,7 @@ def get_lat_long(address, region=None, attempt=1):
                         reg_center, reg_city = region_result
                         dist_km = geodesic((location.latitude, location.longitude), reg_center).km
                         if dist_km > 100:
-                            print(f"    ⚠️ Too far ({dist_km:.0f}km from {reg_city}, {region})")
+                            logger.debug("Geocode too far (%.0f km from %s, %s) — skipping", dist_km, reg_city, region)
                             continue
 
                 return location.latitude, location.longitude, location.address, "exact"
@@ -107,12 +110,12 @@ def get_lat_long(address, region=None, attempt=1):
             region_result = get_region_center(region)
             if region_result:
                 reg_center, reg_city = region_result
-                print(f"    📍 Falling back to region center: {reg_city}")
-                return reg_center[0], reg_center[1], f"{reg_city}, Україна", "city"
+                logger.debug("Falling back to region center: %s", reg_city)
+                return reg_center[0], reg_center[1], f"{reg_city}, Ð£ÐºÑ€Ð°Ñ—Ð½Ð°", "city"
 
         return None, None, None, None
     except Exception as e:
-        print(f"⚠️ Geocoding error: {e}")
+        logger.error("Geocoding error: %s", e)
         return None, None, None, None
 
 
@@ -255,10 +258,10 @@ def _execute_scraping(url_list, workers, scrape_func):
     total = len(url_list)
 
     if total == 0:
-        print("No listings found.")
+        click.echo("No listings found.")
         return
 
-    print(f"📋 {total} listings queued. Processing...")
+    click.echo(f"ðŸ“‹ {total} listings queued. Processing...")
 
     from flask import current_app
     app = current_app._get_current_object()
@@ -277,17 +280,17 @@ def _execute_scraping(url_list, workers, scrape_func):
             if status == 'new':
                 stats['new'] += 1
                 curr = result.get('currency', 'UAH')
-                print(f"[{i}/{total}] ✅ {result['title'][:40]}... ({result['price']} {curr})")
+                click.echo(f"[{i}/{total}] âœ… {result['title'][:40]}... ({result['price']} {curr})")
             elif status == 'updated':
                 stats['updated'] += 1
-                print(f"[{i}/{total}] 🔄 {result['title'][:40]}... ({result['msg']})")
+                click.echo(f"[{i}/{total}] ðŸ”„ {result['title'][:40]}... ({result['msg']})")
             elif status == 'skipped':
                 stats['skipped'] += 1
             elif status == 'rejected':
                 stats['rejected'] += 1
-                print(f"[{i}/{total}] 🚫 {result['msg']}")
+                click.echo(f"[{i}/{total}] ðŸš« {result['msg']}")
             elif status == 'error':
                 stats['errors'] += 1
-                print(f"[{i}/{total}] ❌ {result['msg']}")
+                click.echo(f"[{i}/{total}] âŒ {result['msg']}")
 
-    print(f"\n📊 Done: {stats['new']} new, {stats['updated']} updated, {stats['skipped']} skipped, {stats['rejected']} rejected, {stats['errors']} errors")
+    click.echo(f"\nðŸ“Š Done: {stats['new']} new, {stats['updated']} updated, {stats['skipped']} skipped, {stats['rejected']} rejected, {stats['errors']} errors")

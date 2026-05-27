@@ -49,8 +49,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUser(JSON.parse(storedUser));
           }
         }
-      } catch (err) {
-        console.error('Invalid token found', err);
+      } catch {
+        // Stored token is malformed — clear it silently
         sessionStorage.removeItem('token');
         sessionStorage.removeItem('user');
       }

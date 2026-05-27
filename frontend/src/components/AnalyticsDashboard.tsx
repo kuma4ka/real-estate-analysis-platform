@@ -89,8 +89,8 @@ const AnalyticsDashboard: React.FC = () => {
             try {
                 const data = await fetchStats();
                 setStats(data);
-            } catch (err) {
-                console.error('Failed to load stats', err);
+            } catch {
+                // Stats failed to load — UI shows empty state
             } finally {
                 setLoading(false);
             }
