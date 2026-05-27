@@ -1,4 +1,4 @@
-﻿import time
+import time
 import click
 from flask.cli import with_appcontext
 
@@ -51,14 +51,14 @@ def regeocode_ids_command(ids_str):
         click.echo(f"#{p.id}: Processing...")
         lat, lng, canonical, precision = get_lat_long(p.address)
         if lat and lng:
-            click.echo("  âœ… Geocoded")
+            click.echo("  ??  Geocoded")
             p.latitude = lat
             p.longitude = lng
             p.geocode_precision = precision
             if canonical:
                 p.address = canonical
         else:
-            click.echo("  âŒ Failed")
+            click.echo("  ??? Failed")
             p.latitude = None
             p.longitude = None
             p.geocode_precision = None
@@ -90,7 +90,7 @@ def backfill_images(limit):
         click.echo(f"[{i}/{len(props)}] #{p.id}: {p.source_url}")
         soup = fetch_html(p.source_url)
         if not soup:
-            click.echo("  âš  Could not fetch page")
+            click.echo("  ??? Could not fetch page")
             time.sleep(1)
             continue
 
@@ -100,9 +100,9 @@ def backfill_images(limit):
         if images:
             p.images = images
             updated += 1
-            click.echo(f"  âœ… Found {len(images)} images")
+            click.echo(f"  ??  Found {len(images)} images")
         else:
-            click.echo("  âŒ No images found")
+            click.echo("  ??? No images found")
 
         if i % 25 == 0:
             db.session.commit()
@@ -183,7 +183,7 @@ def purge_stale_command(workers, batch, dry_run):
 
     DEAD_STATUSES = {404, 410}
 
-    # Load only the fields needed â€” plain tuples, not ORM objects, to avoid cross-thread issues
+    # Load only the fields needed ?   plain tuples, not ORM objects, to avoid cross-thread issues
     rows = db.session.execute(
         db.select(Property.id, Property.source_url, Property.images)
         .where(Property.is_active == True)
