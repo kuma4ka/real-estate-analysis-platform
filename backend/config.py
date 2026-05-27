@@ -27,7 +27,7 @@ class Config:
 
     SQLALCHEMY_DATABASE_URI = _DATABASE_URL
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    RATELIMIT_STORAGE_URL = os.getenv('RATELIMIT_STORAGE_URL', 'memory://')
+    RATELIMIT_STORAGE_URI = os.getenv('RATELIMIT_STORAGE_URI', os.getenv('RATELIMIT_STORAGE_URL', 'memory://'))
 
     CACHE_TYPE = os.getenv('CACHE_TYPE', 'SimpleCache')
     _ratelimit_url = os.getenv('RATELIMIT_STORAGE_URL', 'memory://')
