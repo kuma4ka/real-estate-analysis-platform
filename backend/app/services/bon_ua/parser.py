@@ -1,4 +1,6 @@
 import re
+import json
+import logging
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 from .network import fetch_html
@@ -7,13 +9,15 @@ from .config import BASE_URL
 from app.services.cities import normalize_city
 from app.services.address_normalizer import AddressNormalizer
 
+logger = logging.getLogger(__name__)
+
 
 def get_listing_urls(listings_url, page=1):
     """
     Scrape the listing page on bon.ua to find individual property URLs.
     """
     url = f"{listings_url}?page={page}"
-    print(f"    Fetching Bon.ua listing page: {url}")
+    logger.debug("Fetching Bon.ua listing page: %s", url)
     html = fetch_html(url)
     
     if not html:
@@ -101,7 +105,6 @@ class BonUaParser:
                     return price, currency
 
         # JSON-LD structured data fallback (reliable and not scoped to msg-inner)
-        import json
         for script in self.soup.find_all('script', type='application/ld+json'):
             try:
                 data = json.loads(script.string or '')

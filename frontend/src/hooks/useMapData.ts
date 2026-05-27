@@ -18,8 +18,8 @@ export function useMapData(active: boolean) {
                     setMapProperties(response.data);
                     setMapLoaded(true);
                 }
-            } catch (error) {
-                if (!cancelled) console.error('Failed to load map properties', error);
+            } catch {
+                // Map load failed — map simply stays empty
             }
         };
 

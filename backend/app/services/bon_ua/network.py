@@ -1,5 +1,9 @@
+import logging
 import cloudscraper
 import time
+
+logger = logging.getLogger(__name__)
+
 
 def fetch_html(url, retries=3, timeout=15):
     configs = [
@@ -14,17 +18,18 @@ def fetch_html(url, retries=3, timeout=15):
             cfg = configs[attempt % len(configs)]
             scraper = cloudscraper.create_scraper(browser=cfg)
             response = scraper.get(url, timeout=timeout)
-            
+
             if response.status_code == 200:
                 return response.text
             elif response.status_code == 404:
-                print(f"[{attempt+1}/{retries}] 404 Not Found: {url}")
+                logger.warning("[%d/%d] 404 Not Found: %s", attempt + 1, retries, url)
                 return None
             else:
-                print(f"[{attempt+1}/{retries}] Status {response.status_code} for {url}")
+                logger.warning("[%d/%d] Status %s for %s", attempt + 1, retries, response.status_code, url)
         except Exception as e:
-            print(f"[{attempt+1}/{retries}] Error fetching {url}: {e}")
-            
+            logger.error("[%d/%d] Error fetching %s: %s", attempt + 1, retries, url, e)
+
         time.sleep(2 * (attempt + 1))
-        
+
     return None
+

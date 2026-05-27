@@ -41,7 +41,6 @@ export const fetchProperties = async (filters: PropertyFilters = {}): Promise<Pr
         const data: PropertiesResponse = await response.json();
         return data;
     } catch (error) {
-        console.error('Error fetching properties:', error);
         throw error;
     }
 };
@@ -54,7 +53,6 @@ export const fetchAllPropertiesForMap = async (): Promise<{ data: Property[], co
         }
         return await response.json();
     } catch (error) {
-        console.error('Error fetching map properties:', error);
         throw error;
     }
 };
@@ -78,7 +76,6 @@ export const fetchStats = async (): Promise<StatsData> => {
         }
         return await response.json();
     } catch (error) {
-        console.error('Error fetching stats:', error);
         throw error;
     }
 };
@@ -117,7 +114,6 @@ export const fetchForecast = async (city?: string): Promise<ForecastData> => {
         }
         return await response.json();
     } catch (error) {
-        console.error('Error fetching forecast:', error);
         throw error;
     }
 };
@@ -142,7 +138,6 @@ export const downloadStatsCsv = async (): Promise<void> => {
             document.body.removeChild(a);
         }, 100);
     } catch (error) {
-        console.error('Error downloading CSV:', error);
         throw error;
     }
 };
@@ -153,6 +148,6 @@ export const apiLogout = async (): Promise<void> => {
             method: 'POST'
         });
     } catch (error) {
-        console.error('Error during logout:', error);
+        // Logout failures are non-critical; swallow silently
     }
 };

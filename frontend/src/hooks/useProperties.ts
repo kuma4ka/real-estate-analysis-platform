@@ -25,8 +25,8 @@ export function useProperties() {
                     setProperties(response.data);
                     setMeta(response.meta);
                 }
-            } catch (error) {
-                if (!cancelled) console.error('Failed to load properties', error);
+            } catch {
+                // Swallow — UI already stays in loading=false state
             } finally {
                 if (!cancelled) setLoading(false);
             }
