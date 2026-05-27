@@ -72,7 +72,7 @@
 | Парсинг | BeautifulSoup4, cloudscraper, requests |
 | Аналітика | Pandas, NumPy |
 | Геокодування | geopy |
-| Кешування | cachetools TTLCache |
+| Кешування | Redis (Flask-Caching), Rate Limiting (Flask-Limiter) |
 | Валідація даних | Marshmallow schemas |
 
 ### Frontend
@@ -115,11 +115,11 @@
 │  │  React/Vite  │◄──►│  Flask API   │◄──►│      DB :5432    │   │
 │  │  Nginx :3000 │    │   :5000      │    │                  │   │
 │  └──────────────┘    └──────┬───────┘    └──────────────────┘   │
-│                             │                                   │
-│                      ┌──────▼───────┐                           │
-│                      │ Cron Worker  │                           │
-│                      │(Auto-scraper)│                           │
-│                      └──────────────┘                           │
+│                             │                      ▲            │
+│                      ┌──────▼───────┐      ┌───────┴────────┐   │
+│                      │ Cron Worker  │      │     Redis      │   │
+│                      │(Auto-scraper)│      │  Cache & Auth  │   │
+│                      └──────────────┘      └────────────────┘   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -488,9 +488,10 @@ npx cypress open
 
 ### Заходи безпеки
 
-- **Rate Limiting:** Реєстрація — 5/день, Логін — 10/хв, Зміна пароля — 5/год
+- **Rate Limiting:** Реєстрація — 5/день, Логін — 10/хв, Зміна пароля — 5/год (на базі Redis)
 - **Account Lockout:** Після 5 невдалих спроб входу — блокування на 15 хвилин
 - **JWT Authentication:** Токени HS256, строк дії налаштовується через `SECRET_KEY`
+- **Token Revocation (Blocklist):** Перевірка відкликаних токенів з кешуванням у Redis для високої продуктивності та безпеки
 - **Input Validation:** Marshmallow-схеми для всіх вхідних даних
 - **Password Policy:** Мін. 8 символів, uppercase, цифра, спецсимвол
 
