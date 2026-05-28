@@ -18,23 +18,23 @@ def seed_users_command():
         password = os.environ.get(f'SEED_{role.name.upper()}_PASSWORD')
 
         if not email or not password:
-            print(f"Skipping {role} creation: Missing SEED_{role.name.upper()}_EMAIL or SEED_{role.name.upper()}_PASSWORD in .env")
+            click.echo(f"Skipping {role.value}: SEED_{role.name.upper()}_EMAIL or _PASSWORD not set in .env")
             continue
 
         existing_user = User.query.filter_by(email=email).first()
         if existing_user:
-            print(f"{role} user already exists with email: {email}")
+            click.echo(f"[SKIP] {role.value} user already exists.")
             continue
 
         new_user = User(email=email, role=role)
         new_user.set_password(password)
         db.session.add(new_user)
         created += 1
-        print(f"Created {role} user: {email}")
+        click.echo(f"[OK]   Created {role.value} user.")
 
     if created > 0:
         db.session.commit()
-        print(f"Successfully seeded {created} new users.")
+        click.echo(f"Successfully seeded {created} new user(s).")
     else:
-        print("No new users were created.")
+        click.echo("No new users were created.")
 
