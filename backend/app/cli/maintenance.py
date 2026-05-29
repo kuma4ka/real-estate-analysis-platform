@@ -196,11 +196,32 @@ def purge_stale_command(workers, batch, dry_run):
         prop_id, source_url, images = row.id, row.source_url, row.images
         try:
             from urllib.parse import urlparse
+            import socket
+            import ipaddress
+
             parsed = urlparse(source_url)
             if parsed.scheme not in ('http', 'https') or not parsed.hostname:
                 return prop_id, 0, 'invalid_url'
-            forbidden_hosts = ('localhost', '127.0.0.1', '169.254.169.254', '::1')
-            if parsed.hostname in forbidden_hosts:
+
+            # Resolve hostname to IP and reject any private/reserved range.
+            # This guards against DNS-rebinding: checking only the hostname
+            # string is insufficient because a malicious DNS entry could
+            # resolve a public-looking name to 127.0.0.1 at request time.
+            try:
+                resolved_ip = socket.getaddrinfo(parsed.hostname, None)[0][4][0]
+                ip_obj = ipaddress.ip_address(resolved_ip)
+            except (socket.gaierror, ValueError):
+                return prop_id, 0, 'invalid_url'
+
+            if (
+                ip_obj.is_loopback        # 127.x.x.x, ::1
+                or ip_obj.is_private      # 10.x, 172.16-31.x, 192.168.x, fc00::/7
+                or ip_obj.is_link_local   # 169.254.x.x, fe80::/10
+                or ip_obj.is_reserved     # 240.0.0.0/4 and other IANA reserved
+                or ip_obj.is_multicast    # 224.0.0.0/4
+                # Shared address space (RFC 6598) — used by carrier-grade NAT
+                or ipaddress.ip_address(resolved_ip) in ipaddress.ip_network('100.64.0.0/10')
+            ):
                 return prop_id, 0, 'invalid_url'
 
             resp = requests.head(
