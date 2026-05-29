@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 
@@ -21,6 +21,7 @@ export default function Header({
 }: HeaderProps) {
     const { t, i18n } = useTranslation();
     const { user, logout } = useAuth();
+    const navigate = useNavigate();
 
     return (
         <header className="sticky top-0 z-10 bg-surface border-b border-border">
@@ -65,7 +66,7 @@ export default function Header({
                                     </div>
                                 </Link>
                                 <button
-                                    onClick={async () => { await logout(); window.location.reload(); }}
+                                    onClick={async () => { await logout(); navigate('/'); }}
                                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium text-red-500 bg-red-500/10 hover:bg-red-500/20 hover:text-red-600 transition-colors"
                                     title={typeof t('logout') === 'string' ? t('logout') as string : 'Sign Out'}
                                 >
