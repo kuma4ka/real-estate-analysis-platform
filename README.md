@@ -304,9 +304,6 @@ flask backfill-images
 
 # Додання тестових користувачів (User, Analyst, Admin)
 flask seed-users
-
-# Ініціалізація таблиці джерел
-flask seed-sources
 ```
 
 ---
@@ -320,7 +317,7 @@ flask seed-sources
 | Метод | Endpoint | Доступ | Опис |
 |---|---|---|---|
 | `POST` | `/auth/register` | Public | Реєстрація (ліміт: 5/день) |
-| `POST` | `/auth/login` | Public | Логін, повертає JWT-токен (ліміт: 10/хв) |
+| `POST` | `/auth/login` | Public | Логін, повертає JWT-токен (ліміт: 5/хв) |
 | `GET` | `/auth/me` | 🔒 Auth | Профіль поточного користувача |
 | `PUT` | `/auth/me/password` | 🔒 Auth | Зміна пароля (ліміт: 5/год) |
 
