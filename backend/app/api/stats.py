@@ -1,15 +1,29 @@
 import csv
 import io
-from flask import jsonify, Response
+from datetime import date, timedelta
+from flask import jsonify, Response, request
 from sqlalchemy import func, case
 from app.models import Property, UserRole
 from app.api import bp
 from app.core.auth import require_role
 from app import cache
 from app.services.cities import CITIES
-import datetime
-from flask import jsonify, Response, request
 
+
+@cache.cached(timeout=600, key_prefix='_available_cities')
+def _get_available_cities() -> list[str]:
+    """Returns the top-20 cities by listing count. Cached separately so
+    every per-city forecast entry does not redundantly store this list."""
+    rows = (
+        Property.query
+        .with_entities(Property.city)
+        .filter(Property.city.isnot(None))
+        .group_by(Property.city)
+        .order_by(func.count(Property.id).desc())
+        .limit(20)
+        .all()
+    )
+    return [r[0] for r in rows]
 
 @cache.cached(timeout=600, key_prefix='_compute_stats')
 def _compute_stats():
@@ -152,17 +166,8 @@ def _compute_price_forecast(city_filter):
         func.date(Property.created_at)
     ).all()
 
-    # Fetch available cities for the dropdown (always global)
-    city_rows = (
-        Property.query
-        .with_entities(Property.city)
-        .filter(Property.city.isnot(None))
-        .group_by(Property.city)
-        .order_by(func.count(Property.id).desc())
-        .limit(20)
-        .all()
-    )
-    available_cities = [r[0] for r in city_rows]
+    # Fetch available cities from the shared cached function.
+    available_cities = _get_available_cities()
 
     if len(rows) < 3:
         return {
@@ -176,11 +181,11 @@ def _compute_price_forecast(city_filter):
 
     # Convert dates to integer offsets (day 0 = first data point)
     def to_date(val):
-        if isinstance(val, datetime.date):
+        if isinstance(val, date):
             return val
         if hasattr(val, 'date'):
             return val.date()
-        return datetime.date.fromisoformat(str(val))
+        return date.fromisoformat(str(val))
 
     base_date = to_date(rows[0][0])
     xs = np.array([(to_date(r[0]) - base_date).days for r in rows], dtype=float)
@@ -200,16 +205,14 @@ def _compute_price_forecast(city_filter):
     # Forecast: next 30 days after the last data point
     last_x = int(xs[-1])
     last_date = to_date(rows[-1][0])
-    
-    # Real estate prices cannot realistically drop to $0. 
-    # We establish a maximum naive drop constraint: 50% of the last known price.
+    # Real estate prices cannot realistically drop to $0.
+    # Clamp the forecast floor at 50% of the last known price.
     last_actual_price = float(ys[-1]) if len(ys) > 0 else 0.0
     price_floor = max(0.0, last_actual_price * 0.5)
-
     forecast = []
     for i in range(1, 31):
         future_x = last_x + i
-        future_date = last_date + datetime.timedelta(days=i)
+        future_date = last_date + timedelta(days=i)
         raw_price = float(np.polyval(coeffs, future_x))
         clamped_price = max(price_floor, raw_price)
         
