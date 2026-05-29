@@ -30,6 +30,16 @@ def create_app(config_class=Config):
     @app.errorhandler(429)
     def ratelimit_handler(e):
         return jsonify(message="Too many requests. Please slow down and try again later."), 429
+
+    # Add security headers to every response.
+    @app.after_request
+    def set_security_headers(response):
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-Frame-Options'] = 'DENY'
+        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        response.headers['X-XSS-Protection'] = '0'  # Disabled — modern browsers handle XSS natively
+        return response
+
     # Before Request Hook for metrics
     from app.core.metrics import record_request
     @app.before_request
