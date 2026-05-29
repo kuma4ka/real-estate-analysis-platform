@@ -61,7 +61,7 @@ def register():
     }), 201
 
 @auth_bp.route('/login', methods=['POST'])
-@limiter.limit("10 per minute")
+@limiter.limit("5 per minute")  # Must be <= account lockout threshold (5 attempts)
 def login():
     data = request.get_json()
     if not data:
