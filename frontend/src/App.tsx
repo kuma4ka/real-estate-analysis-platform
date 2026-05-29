@@ -66,6 +66,7 @@ function MainLayout() {
                 meta={meta}
                 filters={filters}
                 loading={loading}
+                error={error}
                 onFilterChange={handleFilterChange}
                 onPageChange={handlePageChange}
             />

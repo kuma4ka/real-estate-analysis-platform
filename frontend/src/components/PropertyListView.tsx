@@ -8,6 +8,7 @@ interface PropertyListViewProps {
     meta: PaginationMeta | null;
     filters: PropertyFilters;
     loading: boolean;
+    error: string | null;
     onFilterChange: (filters: PropertyFilters) => void;
     onPageChange: (page: number) => void;
 }
@@ -23,6 +24,7 @@ export default function PropertyListView({
     meta,
     filters,
     loading,
+    error,
     onFilterChange,
     onPageChange,
 }: PropertyListViewProps) {
@@ -45,6 +47,16 @@ export default function PropertyListView({
                 <div className="flex-grow min-w-0">
                     {loading ? (
                         <Spinner />
+                    ) : error ? (
+                        <div className="flex flex-col items-center justify-center py-20 gap-3 bg-surface rounded-xl border border-dashed border-red-300">
+                            <p className="text-base text-red-500 font-medium">{error}</p>
+                            <button
+                                onClick={() => onFilterChange({})}
+                                className="text-primary hover:underline text-sm"
+                            >
+                                {t('reset')}
+                            </button>
+                        </div>
                     ) : properties.length === 0 ? (
                         <div className="text-center py-20 bg-surface rounded-xl border border-dashed border-border">
                             <p className="text-lg text-text-muted">{t('no_results')}</p>
