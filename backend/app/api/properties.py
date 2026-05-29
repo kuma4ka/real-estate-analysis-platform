@@ -64,8 +64,10 @@ def get_properties():
         )
 
     if city:
+        if len(city) > 100:
+            return jsonify({"message": "city parameter too long"}), 400
         resolved = _resolve_city_alias(city)
-        query = query.filter(Property.city.ilike(f"%{resolved}%"))
+        query = query.filter(Property.city.ilike(f"{resolved}%"))
     if rooms:
         query = query.filter(Property.rooms == rooms)
     if price_min:
@@ -128,8 +130,10 @@ def get_map_properties():
     price_max = request.args.get('price_max', type=float)
 
     if city:
+        if len(city) > 100:
+            return jsonify({"message": "city parameter too long"}), 400
         resolved = _resolve_city_alias(city)
-        query = query.filter(Property.city.ilike(f"%{resolved}%"))
+        query = query.filter(Property.city.ilike(f"{resolved}%"))
     if rooms:
         query = query.filter(Property.rooms == rooms)
     if price_min:
