@@ -23,6 +23,13 @@ def create_app(config_class=Config):
     limiter.init_app(app)
     cache.init_app(app)
 
+    # Ensure Flask-Limiter returns JSON instead of the default HTML/text response.
+    # Without this, any client calling .get_json() on a 429 receives None.
+    from flask import jsonify
+
+    @app.errorhandler(429)
+    def ratelimit_handler(e):
+        return jsonify(message="Too many requests. Please slow down and try again later."), 429
     # Before Request Hook for metrics
     from app.core.metrics import record_request
     @app.before_request

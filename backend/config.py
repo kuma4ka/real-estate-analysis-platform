@@ -1,5 +1,6 @@
 import os
 import sys
+import secrets
 
 from dotenv import load_dotenv
 
@@ -17,7 +18,9 @@ class Config:
     if not SECRET_KEY:
         if not _is_unprotected_env:
             raise ValueError("SECRET_KEY environment variable is not set!")
-        SECRET_KEY = 'default-dev-key'
+        # Generate a random key per process rather than using a hardcoded literal.
+        # Tokens won't survive restarts in dev/test, which is acceptable.
+        SECRET_KEY = secrets.token_hex(32)
 
     _DATABASE_URL = os.getenv('DATABASE_URL')
     if not _DATABASE_URL:
