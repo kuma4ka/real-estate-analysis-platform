@@ -27,7 +27,7 @@ function MainLayout() {
     const [viewMode, setViewMode] = useState<'list' | 'map' | 'analytics'>('list');
 
     const { darkMode, toggleDark } = useTheme();
-    const { properties, meta, filters, loading, handleFilterChange, handlePageChange } = useProperties();
+    const { properties, meta, filters, loading, error, handleFilterChange, handlePageChange } = useProperties();
     const { mapProperties, mapLoaded } = useMapData(viewMode === 'map');
 
     const tabs: { key: 'list' | 'map' | 'analytics'; label: string }[] = [
