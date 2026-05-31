@@ -93,7 +93,7 @@ def backfill_images(limit):
         click.echo(f"[{i}/{len(props)}] #{p.id}: {p.source_url}")
         soup = fetch_html(p.source_url)
         if not soup:
-            click.echo("  ??? Could not fetch page")
+            click.echo("  [SKIP] Could not fetch page")
             time.sleep(1)
             continue
 
@@ -103,9 +103,9 @@ def backfill_images(limit):
         if images:
             p.images = images
             updated += 1
-            click.echo(f"  ??  Found {len(images)} images")
+            click.echo(f"  [OK]   Found {len(images)} image(s)")
         else:
-            click.echo("  ??? No images found")
+            click.echo("  [SKIP] No images found")
 
         if i % 25 == 0:
             db.session.commit()
