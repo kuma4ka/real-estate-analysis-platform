@@ -4,7 +4,9 @@ import secrets
 
 from dotenv import load_dotenv
 
-load_dotenv()
+# Load .env from the project root
+root_env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+load_dotenv(root_env_path)
 
 _is_unprotected_env = (
     os.getenv('FLASK_DEBUG') in ('1', 'true', 'True')
