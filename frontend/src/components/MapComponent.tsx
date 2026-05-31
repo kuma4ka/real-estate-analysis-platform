@@ -81,9 +81,11 @@ const MapComponent: React.FC<MapComponentProps> = ({ properties }) => {
                                     {property.rooms ? ` • ${property.rooms} ${t('rooms')}` : ''}
                                     {property.area ? ` • ${property.area} ${t('area_unit')}` : ''}
                                 </div>
-                                <a href={property.source_url} target="_blank" rel="noopener noreferrer" className="block text-center mt-2 text-xs bg-primary text-white py-1 rounded">
-                                    {t('more_details')}
-                                </a>
+                                {property.source_url && (
+                                    <a href={property.source_url} target="_blank" rel="noopener noreferrer" className="block text-center mt-2 text-xs bg-primary text-white py-1 rounded">
+                                        {t('more_details')}
+                                    </a>
+                                )}
                             </div>
                         </Popup>
                     </Marker>

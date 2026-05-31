@@ -13,20 +13,26 @@ export function useProperties() {
     const [meta, setMeta] = useState<PaginationMeta | null>(null);
     const [filters, setFilters] = useState<PropertyFilters>(DEFAULT_FILTERS);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         let cancelled = false;
 
         const load = async () => {
             setLoading(true);
+            setError(null);
             try {
                 const response = await fetchProperties(filters);
                 if (!cancelled) {
                     setProperties(response.data);
                     setMeta(response.meta);
                 }
-            } catch {
-                // Swallow — UI already stays in loading=false state
+            } catch (err) {
+                if (!cancelled) {
+                    setError('Failed to load listings. Please try again.');
+                    setProperties([]);
+                    setMeta(null);
+                }
             } finally {
                 if (!cancelled) setLoading(false);
             }
@@ -47,5 +53,5 @@ export function useProperties() {
         }
     };
 
-    return { properties, meta, filters, loading, handleFilterChange, handlePageChange };
+    return { properties, meta, filters, loading, error, handleFilterChange, handlePageChange };
 }

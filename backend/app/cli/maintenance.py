@@ -39,11 +39,14 @@ def regeocode_all_command():
 
 
 @click.command(name='regeocode_ids')
-@click.argument('ids_str')
+@click.argument('ids', nargs=-1, type=int, required=True)
 @with_appcontext
-def regeocode_ids_command(ids_str):
-    ids = [int(i.strip()) for i in ids_str.split(',')]
-    click.echo(f"Re-geocoding {len(ids)} properties: {ids}")
+def regeocode_ids_command(ids):
+    """Re-geocode specific properties by ID. Pass IDs as space-separated arguments.
+
+    Example: flask regeocode_ids 1 2 3 42
+    """
+    click.echo(f"Re-geocoding {len(ids)} properties: {list(ids)}")
 
     props = Property.query.filter(Property.id.in_(ids)).all()
 
@@ -51,14 +54,14 @@ def regeocode_ids_command(ids_str):
         click.echo(f"#{p.id}: Processing...")
         lat, lng, canonical, precision = get_lat_long(p.address)
         if lat and lng:
-            click.echo("  ??  Geocoded")
+            click.echo("  [OK]  Geocoded")
             p.latitude = lat
             p.longitude = lng
             p.geocode_precision = precision
             if canonical:
                 p.address = canonical
         else:
-            click.echo("  ??? Failed")
+            click.echo("  [FAIL] Could not geocode")
             p.latitude = None
             p.longitude = None
             p.geocode_precision = None
@@ -90,7 +93,7 @@ def backfill_images(limit):
         click.echo(f"[{i}/{len(props)}] #{p.id}: {p.source_url}")
         soup = fetch_html(p.source_url)
         if not soup:
-            click.echo("  ??? Could not fetch page")
+            click.echo("  [SKIP] Could not fetch page")
             time.sleep(1)
             continue
 
@@ -100,9 +103,9 @@ def backfill_images(limit):
         if images:
             p.images = images
             updated += 1
-            click.echo(f"  ??  Found {len(images)} images")
+            click.echo(f"  [OK]   Found {len(images)} image(s)")
         else:
-            click.echo("  ??? No images found")
+            click.echo("  [SKIP] No images found")
 
         if i % 25 == 0:
             db.session.commit()
@@ -192,7 +195,7 @@ def purge_stale_command(workers, batch, dry_run):
     total = len(rows)
     click.echo(f"Checking {total} active listings (workers={workers}, dry_run={dry_run})...")
 
-    def check_row(row):
+    def check_row(row, session: requests.Session):
         prop_id, source_url, images = row.id, row.source_url, row.images
         try:
             from urllib.parse import urlparse
@@ -203,10 +206,6 @@ def purge_stale_command(workers, batch, dry_run):
             if parsed.scheme not in ('http', 'https') or not parsed.hostname:
                 return prop_id, 0, 'invalid_url'
 
-            # Resolve hostname to IP and reject any private/reserved range.
-            # This guards against DNS-rebinding: checking only the hostname
-            # string is insufficient because a malicious DNS entry could
-            # resolve a public-looking name to 127.0.0.1 at request time.
             try:
                 resolved_ip = socket.getaddrinfo(parsed.hostname, None)[0][4][0]
                 ip_obj = ipaddress.ip_address(resolved_ip)
@@ -214,17 +213,16 @@ def purge_stale_command(workers, batch, dry_run):
                 return prop_id, 0, 'invalid_url'
 
             if (
-                ip_obj.is_loopback        # 127.x.x.x, ::1
-                or ip_obj.is_private      # 10.x, 172.16-31.x, 192.168.x, fc00::/7
-                or ip_obj.is_link_local   # 169.254.x.x, fe80::/10
-                or ip_obj.is_reserved     # 240.0.0.0/4 and other IANA reserved
-                or ip_obj.is_multicast    # 224.0.0.0/4
-                # Shared address space (RFC 6598) — used by carrier-grade NAT
+                ip_obj.is_loopback
+                or ip_obj.is_private
+                or ip_obj.is_link_local
+                or ip_obj.is_reserved
+                or ip_obj.is_multicast
                 or ipaddress.ip_address(resolved_ip) in ipaddress.ip_network('100.64.0.0/10')
             ):
                 return prop_id, 0, 'invalid_url'
 
-            resp = requests.head(
+            resp = session.head(
                 source_url,
                 timeout=8,
                 allow_redirects=True,
@@ -234,7 +232,7 @@ def purge_stale_command(workers, batch, dry_run):
                 return prop_id, resp.status_code, 'dead_url'
 
             if images and len(images) > 0:
-                img_resp = requests.head(
+                img_resp = session.head(
                     images[0], timeout=5, allow_redirects=True,
                     headers={'User-Agent': 'Mozilla/5.0'}
                 )
@@ -249,7 +247,7 @@ def purge_stale_command(workers, batch, dry_run):
     checked = 0
 
     with ThreadPoolExecutor(max_workers=workers) as executor:
-        futures = {executor.submit(check_row, row): row for row in rows}
+        futures = {executor.submit(check_row, row, requests.Session()): row for row in rows}
         for future in _as_completed(futures):
             prop_id, status, reason = future.result()
             checked += 1
