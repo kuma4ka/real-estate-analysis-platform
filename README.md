@@ -228,9 +228,8 @@ source .venv/Scripts/activate   # Windows
 # Встановлюємо залежності
 pip install -r requirements.txt
 
-# Налаштовуємо змінні середовища
-cp .env.example .env
-# Відредагуйте DATABASE_URL у .env
+# Налаштовуємо змінні середовища (файл .env має знаходитись у корені проєкту)
+# Переконайтеся, що ви скопіювали .env.example у .env в кореневій папці та налаштували DATABASE_URL
 
 # Застосовуємо міграції
 flask db upgrade
@@ -271,6 +270,12 @@ Frontend буде доступний за адресою: http://localhost:5173
 | `SECRET_KEY` | Секретний ключ для підпису JWT | Довгий рандомний рядок |
 | `FLASK_APP` | Entry point Flask | `run.py` |
 | `FLASK_DEBUG` | Режим налагодження (0/1) | `0` (prod), `1` (dev) |
+| `SEED_ADMIN_EMAIL` | Email адміністратора (для seed) | `admin@example.com` |
+| `SEED_ADMIN_PASSWORD` | Пароль адміністратора | `strongpassword` |
+| `SEED_ANALYST_EMAIL`| Email аналітика (для seed) | `analyst@example.com`|
+| `SEED_ANALYST_PASSWORD`| Пароль аналітика | `strongpassword` |
+| `SEED_USER_EMAIL` | Email користувача (для seed) | `user@example.com` |
+| `SEED_USER_PASSWORD` | Пароль користувача | `strongpassword` |
 
 > ⚠️ **Ніколи не комітьте `.env` файл!** Він вже доданий до `.gitignore`.
 
