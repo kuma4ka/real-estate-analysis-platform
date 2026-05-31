@@ -1,4 +1,4 @@
-import { useRef, useCallback, useLayoutEffect } from 'react';
+import { useRef, useCallback, useEffect } from 'react';
 
 /**
  * Returns a throttled version of an async function.
@@ -14,9 +14,11 @@ function useThrottle<Args extends unknown[]>(
 ): (...args: Args) => void {
     const lastCompletedAt = useRef<number>(0);
     const isRunning = useRef<boolean>(false);
-    // Keep a stable ref to the latest `fn` so we don't need it in deps
+    // Keep fnRef in sync with the latest fn on every render.
+    // useEffect (not useLayoutEffect) is correct here — updating a ref
+    // does not require DOM access and does not need to run before paint.
     const fnRef = useRef(fn);
-    useLayoutEffect(() => {
+    useEffect(() => {
         fnRef.current = fn;
     });
 

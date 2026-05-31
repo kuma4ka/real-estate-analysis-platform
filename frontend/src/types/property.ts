@@ -13,7 +13,7 @@ export interface Property {
     rooms: number | null;
     floor: number | null;
     images: string[] | null;
-    source_url: string;
+    source_url: string | null;
     created_at: string;
 }
 
