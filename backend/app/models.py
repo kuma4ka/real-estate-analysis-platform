@@ -48,24 +48,24 @@ class Property(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     title = db.Column(db.Text, nullable=False)
-    price = db.Column(db.Float, nullable=True)
+    price = db.Column(db.Float, nullable=True, index=True)
     currency = db.Column(db.String(10), default="USD")
 
     address = db.Column(db.Text, nullable=True)
     latitude = db.Column(db.Float, nullable=True)
     longitude = db.Column(db.Float, nullable=True)
-    city = db.Column(db.String(100), nullable=True)
+    city = db.Column(db.String(100), nullable=True, index=True)
     district = db.Column(db.String(100), nullable=True)
     geocode_precision = db.Column(db.String(20), nullable=True)
 
     area = db.Column(db.Float, nullable=True)
-    rooms = db.Column(db.Integer, nullable=True)
+    rooms = db.Column(db.Integer, nullable=True, index=True)
     floor = db.Column(db.Integer, nullable=True)
 
     source_url = db.Column(db.Text, unique=True, nullable=False)
-    source_website = db.Column(db.String(50))
+    source_website = db.Column(db.String(50), index=True)
     images = db.Column(db.JSON, nullable=True)
-    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False, index=True)
 
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
@@ -93,4 +93,4 @@ class TokenBlocklist(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     jti = db.Column(db.String(36), nullable=False, unique=True, index=True)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
