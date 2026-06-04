@@ -51,6 +51,8 @@ services:
       SEED_ANALYST_PASSWORD: ${SEED_ANALYST_PASSWORD}
       SEED_USER_EMAIL: ${SEED_USER_EMAIL}
       SEED_USER_PASSWORD: ${SEED_USER_PASSWORD}
+      JWT_EXPIRY_HOURS: ${JWT_EXPIRY_HOURS:-24}
+      MAX_MAP_PINS: ${MAX_MAP_PINS:-5000}
 
     depends_on:
       db:
@@ -64,7 +66,7 @@ services:
     container_name: real_estate_frontend
     restart: always
     ports:
-      - "3000:80"
+      - "127.0.0.1:3000:80"
     depends_on:
       - backend
 
@@ -74,7 +76,9 @@ services:
       dockerfile: Dockerfile
     container_name: real_estate_cron
     restart: always
-    command: bash -c "printenv >> /etc/environment && cron -f"
+    command: >
+      bash -c "export DATABASE_URL FLASK_APP SECRET_KEY RATELIMIT_STORAGE_URI
+      CACHE_TYPE CACHE_REDIS_URL && cron -f"
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       FLASK_APP: run.py

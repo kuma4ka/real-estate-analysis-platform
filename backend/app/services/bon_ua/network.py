@@ -10,7 +10,7 @@ def fetch_html(url, retries=3, timeout=15):
         {'browser': 'firefox', 'platform': 'linux', 'mobile': False},
         {'browser': 'firefox', 'platform': 'windows', 'mobile': False},
         {'browser': 'chrome', 'platform': 'windows', 'mobile': False},
-        {'custom': 'ScraperBot/1.0'}
+        {'browser': 'chrome', 'platform': 'linux', 'mobile': False},
     ]
 
     for attempt in range(retries):

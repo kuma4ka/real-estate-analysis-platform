@@ -34,7 +34,11 @@ def _compute_stats():
 
     avg_area = Property.query.with_entities(
         func.avg(Property.area)
-    ).filter(Property.area.isnot(None), Property.area > 0).scalar() or 0
+    ).filter(
+        Property.is_active == True,
+        Property.area.isnot(None),
+        Property.area > 0,
+    ).scalar() or 0
 
     # Avg price per m² (global)
     avg_price_per_m2 = Property.query.with_entities(
@@ -67,7 +71,8 @@ def _compute_stats():
         func.count(Property.id).label('count'),
         func.avg(Property.price).label('avg_price'),
     ).filter(
-        Property.rooms.isnot(None)
+        Property.is_active == True,
+        Property.rooms.isnot(None),
     ).group_by(Property.rooms).order_by(Property.rooms).all()
 
     _PRICE_BUCKET_ORDER = ['<$10k', '$10-25k', '$25-50k', '$50-100k', '$100-250k', '$250k+']
@@ -83,7 +88,7 @@ def _compute_stats():
     _histogram_rows = (
         Property.query
         .with_entities(_price_bucket.label('range'), func.count().label('count'))
-        .filter(Property.price.isnot(None))
+        .filter(Property.is_active == True, Property.price.isnot(None))
         .group_by(_price_bucket)
         .all()
     )
@@ -98,9 +103,12 @@ def _compute_stats():
         func.date(Property.created_at).label('date'),
         func.count(Property.id).label('count'),
         func.avg(Property.price).label('avg_price'),
+    ).filter(
+        Property.is_active == True,
     ).group_by(func.date(Property.created_at)).order_by(
-        func.date(Property.created_at)
+        func.date(Property.created_at).desc()
     ).limit(30).all()
+    trend_rows = list(reversed(trend_rows))
 
     recent_trend = []
     for i, r in enumerate(trend_rows):
@@ -269,6 +277,12 @@ def export_stats_csv():
     """Stream active properties as a CSV without loading all rows into RAM."""
     CHUNK_SIZE = 500
 
+    def _csv_safe(value):
+        s = str(value) if value is not None else ''
+        if s and s[0] in ('=', '+', '-', '@', '\t', '\r'):
+            return "'" + s
+        return s
+
     def generate():
         header = ['id', 'title', 'price', 'currency', 'city', 'district',
                   'area', 'rooms', 'floor', 'address', 'created_at']
@@ -287,8 +301,9 @@ def export_stats_csv():
             buf = io.StringIO()
             writer = csv.writer(buf)
             writer.writerow([
-                p.id, p.title, p.price, p.currency, p.city, p.district,
-                p.area, p.rooms, p.floor, p.address,
+                p.id, _csv_safe(p.title), p.price, p.currency,
+                _csv_safe(p.city), _csv_safe(p.district),
+                p.area, p.rooms, p.floor, _csv_safe(p.address),
                 p.created_at.isoformat() if p.created_at else None,
             ])
             yield buf.getvalue()

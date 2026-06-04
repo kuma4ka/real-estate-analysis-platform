@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { jwtDecode } from 'jwt-decode';
-import { apiLogout } from '../services/api';
+import { apiLogout, fetchCurrentUser, setLogoutCallback } from '../services/api';
 import { UserRole } from '../types/user';
 
 interface User {
@@ -35,27 +35,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    setLogoutCallback(logout);
+  });
+
+  useEffect(() => {
     const storedToken = sessionStorage.getItem('token');
-    if (storedToken) {
-      try {
-        const decoded = jwtDecode<{ exp: number }>(storedToken);
-        if (decoded.exp * 1000 < Date.now()) {
-          sessionStorage.removeItem('token');
-          sessionStorage.removeItem('user');
-        } else {
-          setToken(storedToken);
-          const storedUser = sessionStorage.getItem('user');
-          if (storedUser) {
-            setUser(JSON.parse(storedUser));
-          }
-        }
-      } catch {
-        // Stored token is malformed — clear it silently
+    if (!storedToken) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const decoded = jwtDecode<{ exp: number }>(storedToken);
+      if (decoded.exp * 1000 < Date.now()) {
         sessionStorage.removeItem('token');
         sessionStorage.removeItem('user');
+        setIsLoading(false);
+        return;
       }
+    } catch {
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('user');
+      setIsLoading(false);
+      return;
     }
-    setIsLoading(false);
+
+    setToken(storedToken);
+
+    fetchCurrentUser()
+      .then((freshUser: User) => {
+        setUser(freshUser);
+        sessionStorage.setItem('user', JSON.stringify(freshUser));
+      })
+      .catch(() => {
+        setToken(null);
+        setUser(null);
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
+      })
+      .finally(() => setIsLoading(false));
   }, []);
 
   const login = (newToken: string, newUser: User) => {
@@ -64,7 +82,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     sessionStorage.setItem('token', newToken);
     sessionStorage.setItem('user', JSON.stringify(newUser));
   };
-
 
   return (
     <AuthContext.Provider value={{ user, token, isLoading, login, logout }}>

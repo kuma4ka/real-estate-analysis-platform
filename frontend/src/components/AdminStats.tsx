@@ -26,23 +26,26 @@ const AdminStats: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+
     const loadStats = async () => {
       try {
         const response = await fetchWithAuth(`${API_BASE_URL}/admin/system`);
         if (!response.ok) {
-          throw new Error(t('admin_error_fetch_stats', 'Failed to fetch system statistics'));
+          throw new Error('Failed to fetch system statistics');
         }
         const data = await response.json() as SystemStats;
-        setStats(data);
+        if (!cancelled) setStats(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : t('admin_error_fetch_stats', 'An error occurred'));
+        if (!cancelled) setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     loadStats();
-  }, [t]);
+    return () => { cancelled = true; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {
     return <div className="animate-pulse flex space-x-4 p-4"><div className="h-4 bg-gray-300 rounded w-3/4"></div></div>;

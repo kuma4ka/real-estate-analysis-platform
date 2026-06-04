@@ -86,6 +86,7 @@ wheels/
 .coverage
 htmlcov/
 .mypy_cache/
+instance/
 
 # === Node / JS ===
 node_modules/

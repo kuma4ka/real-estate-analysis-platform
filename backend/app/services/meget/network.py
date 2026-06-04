@@ -1,7 +1,10 @@
+import logging
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from .config import HEADERS
+
+logger = logging.getLogger(__name__)
 
 
 def fetch_html(url):
@@ -9,8 +12,8 @@ def fetch_html(url):
         response = requests.get(url, headers=HEADERS, timeout=10)
         if response.status_code == 200:
             return BeautifulSoup(response.content, 'html.parser')
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Failed to fetch %s: %s", url, e)
     return None
 
 

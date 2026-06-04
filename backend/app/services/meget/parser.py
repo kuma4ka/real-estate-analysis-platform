@@ -2,7 +2,7 @@ import re
 from urllib.parse import urljoin
 from .config import GARBAGE_CLASSES
 from .utils import clean_price_text, find_price_by_regex
-from app.services.cities import normalize_city
+from app.services.cities import normalize_city, CITIES
 from app.services.address_normalizer import AddressNormalizer
 
 
@@ -60,7 +60,7 @@ class ListingParser:
 
         area_match = re.search(r'Площадь:.*?(\d+(?:[\.,]\d+)?)', self.page_text, re.IGNORECASE)
         if not area_match:
-            area_match = re.search(r'(\d+(?:[\.,]\d+)?)\s*м2', self.page_text)
+            area_match = re.search(r'(\d+(?:[\.,]\d+)?)\s*(?:м²|м2|кв\.?м)', self.page_text)
 
         if area_match:
             area = float(area_match.group(1).replace(',', '.'))
@@ -171,7 +171,6 @@ class ListingParser:
         if city and address:
             has_city = city in address
             if not has_city:
-                from app.services.cities import CITIES
                 city_info = CITIES.get(city)
                 if city_info:
                     has_city = any(alias in address for alias in city_info['aliases'])

@@ -1,11 +1,17 @@
 import re
+import logging
 from datetime import datetime, timedelta, timezone
 from flask import Blueprint, request, jsonify, g
 from app.models import User, TokenBlocklist
-from app import db, limiter
+from app import db, limiter, cache
 from app.core.auth import generate_token, require_auth
 from marshmallow import Schema, fields, ValidationError
 from sqlalchemy.exc import IntegrityError
+from werkzeug.security import check_password_hash, generate_password_hash
+
+logger = logging.getLogger(__name__)
+
+_DUMMY_HASH = generate_password_hash('__dummy_constant__')
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -18,7 +24,6 @@ def validate_password(p):
         raise ValidationError("Password must contain at least one digit")
     if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", p):
         raise ValidationError("Password must contain at least one special character")
-    return True
 
 class RegisterSchema(Schema):
     email = fields.Email(required=True)
@@ -50,6 +55,7 @@ def register():
         db.session.rollback()
         return jsonify({"message": "User with this email already exists"}), 409
     except Exception:
+        logger.exception("Unexpected error during registration")
         db.session.rollback()
         return jsonify({"message": "Database error"}), 500
 
@@ -74,30 +80,32 @@ def login():
 
     user = User.query.filter_by(email=validated_data['email']).first()
 
-    if user:
-        if user.locked_until:
-            locked_until = user.locked_until
-            if locked_until.tzinfo is None:
-                locked_until = locked_until.replace(tzinfo=timezone.utc)
-            if locked_until > datetime.now(timezone.utc):
-                return jsonify({"message": "Account temporarily locked. Please try again later."}), 429
+    if not user:
+        check_password_hash(_DUMMY_HASH, validated_data['password'])
+        return jsonify({"message": "Invalid email or password"}), 401
 
-        if user.check_password(validated_data['password']):
-            token = generate_token(user.id, user.role)
-            user.last_login = datetime.now(timezone.utc)
-            user.failed_login_attempts = 0
-            user.locked_until = None
-            db.session.commit()
-            return jsonify({
-                "token": token,
-                "user": user.to_dict()
-            }), 200
-        else:
-            user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
-            if user.failed_login_attempts >= 5:
-                user.locked_until = datetime.now(timezone.utc) + timedelta(minutes=15)
-            db.session.commit()
+    if user.locked_until:
+        locked_until = user.locked_until
+        if locked_until.tzinfo is None:
+            locked_until = locked_until.replace(tzinfo=timezone.utc)
+        if locked_until > datetime.now(timezone.utc):
+            return jsonify({"message": "Account temporarily locked. Please try again later."}), 429
 
+    if user.check_password(validated_data['password']):
+        token = generate_token(user.id, user.role)
+        user.last_login = datetime.now(timezone.utc)
+        user.failed_login_attempts = 0
+        user.locked_until = None
+        db.session.commit()
+        return jsonify({
+            "token": token,
+            "user": user.to_dict()
+        }), 200
+
+    user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
+    if user.failed_login_attempts >= 5:
+        user.locked_until = datetime.now(timezone.utc) + timedelta(minutes=15)
+    db.session.commit()
     return jsonify({"message": "Invalid email or password"}), 401
 
 @auth_bp.route('/me', methods=['GET'])
@@ -139,6 +147,7 @@ def change_password():
     try:
         db.session.commit()
     except Exception:
+        logger.exception("Unexpected error during password change")
         db.session.rollback()
         return jsonify({"message": "Database error"}), 500
 
@@ -155,12 +164,12 @@ def logout():
             # Immediately mark this JTI as revoked in the cache so that any
             # in-flight request using the same token is rejected right away,
             # rather than waiting for the 60-second negative-cache TTL to expire.
-            from app import cache
             cache_key = f'blocklist_jti_{jti}'
-            cache.set(cache_key, True, timeout=86_400)  # 24 h safety ceiling
+            cache.set(cache_key, True, timeout=86_400)
         except IntegrityError:
             db.session.rollback()
         except Exception:
+            logger.exception("Unexpected error during logout")
             db.session.rollback()
             return jsonify({"message": "Database error"}), 500
     return jsonify({"message": "Logged out successfully"}), 200

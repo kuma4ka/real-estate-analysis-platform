@@ -1,4 +1,5 @@
 import re
+import threading
 from app.services.cities import normalize_city, get_all_aliases
 
 
@@ -51,15 +52,20 @@ class AddressNormalizer:
     }
 
     _ALL_TRANSLATIONS = {}
+    _SORTED_TRANSLATION_KEYS: list = []
+    _translations_lock = threading.Lock()
 
     @classmethod
     def _get_translations(cls):
-        if not cls._ALL_TRANSLATIONS:
-            for alias, canonical in get_all_aliases().items():
-                cls._ALL_TRANSLATIONS[alias] = canonical
-
-            cls._ALL_TRANSLATIONS.update(cls.STREET_TRANSLATIONS)
-            cls._ALL_TRANSLATIONS.update(cls.STREET_RENAMES)
+        with cls._translations_lock:
+            if not cls._ALL_TRANSLATIONS:
+                for alias, canonical in get_all_aliases().items():
+                    cls._ALL_TRANSLATIONS[alias] = canonical
+                cls._ALL_TRANSLATIONS.update(cls.STREET_TRANSLATIONS)
+                cls._ALL_TRANSLATIONS.update(cls.STREET_RENAMES)
+                cls._SORTED_TRANSLATION_KEYS = sorted(
+                    cls._ALL_TRANSLATIONS.keys(), key=len, reverse=True
+                )
         return cls._ALL_TRANSLATIONS
 
     @classmethod
@@ -126,13 +132,11 @@ class AddressNormalizer:
 
     @classmethod
     def _translate_full_string(cls, text: str) -> str:
-        translations = cls._get_translations()
-        
-        # Sort keys by length descending to replace "улица Ленина" before "улица"
-        sorted_keys = sorted(translations.keys(), key=len, reverse=True)
+        cls._get_translations()
+        sorted_keys = cls._SORTED_TRANSLATION_KEYS
         
         for k in sorted_keys:
-            v = translations[k]
+            v = cls._ALL_TRANSLATIONS[k]
             # Use lookbehind/lookahead for word characters instead of \b to handle trailing dots like "ул."
             pattern = re.compile(r'(?<![а-яА-Яa-zA-ZїієґЇІЄҐ])' + re.escape(k) + r'(?![а-яА-Яa-zA-ZїієґЇІЄҐ])', re.IGNORECASE)
             
