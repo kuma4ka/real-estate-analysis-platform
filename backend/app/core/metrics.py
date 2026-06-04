@@ -1,14 +1,22 @@
 from datetime import datetime, timezone
+from app import cache
 
 START_TIME = datetime.now(timezone.utc)
 
+_REQ_KEY_PREFIX = 'req_count_'
+
+
+def _today_key() -> str:
+    return _REQ_KEY_PREFIX + datetime.now(timezone.utc).date().isoformat()
+
 
 def record_request():
-    from app import cache
-    today = datetime.now(timezone.utc).date().isoformat()
-    key = f'req_count_{today}'
-    count = cache.get(key) or 0
-    cache.set(key, count + 1, timeout=86_400)
+    key = _today_key()
+    try:
+        cache.inc(key, delta=1)
+    except Exception:
+        count = cache.get(key) or 0
+        cache.set(key, count + 1, timeout=86_400)
 
 
 def get_uptime_seconds() -> float:
@@ -16,6 +24,4 @@ def get_uptime_seconds() -> float:
 
 
 def get_requests_today() -> int:
-    from app import cache
-    today = datetime.now(timezone.utc).date().isoformat()
-    return cache.get(f'req_count_{today}') or 0
+    return cache.get(_today_key()) or 0

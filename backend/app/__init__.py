@@ -37,7 +37,8 @@ def create_app(config_class=Config):
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['X-Frame-Options'] = 'DENY'
         response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
-        response.headers['X-XSS-Protection'] = '0'  # Disabled — modern browsers handle XSS natively
+        response.headers['X-XSS-Protection'] = '0'
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
         return response
 
     # Before Request Hook for metrics
@@ -46,9 +47,8 @@ def create_app(config_class=Config):
     def before_request_hook():
         record_request()
 
-    # Ensure models are loaded for Alembic/SQLAlchemy
-    __import__('app.models')
-    
+    from app import models as _models  # noqa: F401
+
     from app.api import bp as api_bp
     app.register_blueprint(api_bp, url_prefix='/api/v1')
 
