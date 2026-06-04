@@ -37,7 +37,7 @@ def get_nbu_rates() -> dict:
         cache.set('nbu_rates', rates, timeout=43_200)
         return rates
     except Exception as e:
-        logger.error(f"Failed to fetch NBU rates: {e}")
+        logger.error("Failed to fetch NBU rates: %s", e)
         return {'USD': 41.0, 'EUR': 44.0}
 
 
@@ -64,6 +64,5 @@ def convert_to_usd(price: float, currency: str) -> float:
         uah_value = price * eur_rate
         return float(uah_value / usd_rate)
     else:
-        # Unknown currency, assume UAH fallback or just return as is
-        logger.warning(f"Unknown currency '{currency}', assuming UAH for conversion fallback.")
+        logger.warning("Unknown currency '%s', assuming UAH for conversion fallback.", currency)
         return float(price / usd_rate)
