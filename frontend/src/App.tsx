@@ -45,15 +45,7 @@ function MainLayout() {
 
     const renderContent = () => {
         if (viewMode === 'analytics') {
-            if (user?.role === UserRole.ANALYST || user?.role === UserRole.ADMIN) {
-                return <AnalyticsDashboard />;
-            }
-            return (
-                <div className="text-center py-20 text-text-muted">
-                    <p className="text-lg font-semibold">{t('access_denied', 'Access denied')}</p>
-                    <p className="text-sm mt-2">{t('analytics_analyst_only', 'Analytics is available for Analyst and Admin roles only.')}</p>
-                </div>
-            );
+            return <AnalyticsDashboard />;
         }
 
         if (viewMode === 'map') {
