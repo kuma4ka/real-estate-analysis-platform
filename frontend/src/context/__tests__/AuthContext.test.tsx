@@ -22,9 +22,15 @@ vi.mock('jwt-decode', () => ({
   })),
 }));
 
-vi.mock('../../services/api', () => ({
-  apiLogout: vi.fn().mockResolvedValue(undefined),
-}));
+vi.mock('../../services/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../services/api')>();
+  return {
+    ...actual,
+    apiLogout: vi.fn().mockResolvedValue(undefined),
+    fetchCurrentUser: vi.fn().mockResolvedValue({ id: 1, email: 'stored@test.com', role: 'Analyst' }),
+    setLogoutCallback: vi.fn(),
+  };
+});
 
 /** A simple consumer component to expose AuthContext values for assertions. */
 function AuthConsumer() {
@@ -68,9 +74,12 @@ describe('AuthContext', () => {
   });
 
   it('loads user and token from sessionStorage on mount if token is valid', async () => {
-    const storedUser = { id: 1, email: 'stored@test.com', role: 'Analyst' };
+    const { fetchCurrentUser } = await import('../../services/api');
+    const freshUser = { id: 1, email: 'stored@test.com', role: 'Analyst' };
+    vi.mocked(fetchCurrentUser).mockResolvedValueOnce(freshUser);
+
     sessionStorage.setItem('token', 'existing-jwt');
-    sessionStorage.setItem('user', JSON.stringify(storedUser));
+    sessionStorage.setItem('user', JSON.stringify(freshUser));
 
     renderWithAuth();
     await waitFor(() => {
@@ -133,8 +142,12 @@ describe('AuthContext', () => {
   });
 
   it('logout() clears state and sessionStorage', async () => {
+    const { fetchCurrentUser } = await import('../../services/api');
+    const storedUser = { id: 1, email: 'me@test.com', role: 'User' };
+    vi.mocked(fetchCurrentUser).mockResolvedValueOnce(storedUser);
+
     sessionStorage.setItem('token', 'existing-jwt');
-    sessionStorage.setItem('user', JSON.stringify({ id: 1, email: 'me@test.com', role: 'User' }));
+    sessionStorage.setItem('user', JSON.stringify(storedUser));
 
     renderWithAuth();
     await waitFor(() => {
