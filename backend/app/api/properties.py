@@ -55,6 +55,8 @@ def get_properties():
     query = Property.query.filter(Property.is_active == True)
 
     if search:
+        if len(search) > 200:
+            return jsonify({"message": "search parameter too long (max 200 chars)"}), 400
         term = f"%{search}%"
         query = query.filter(
             or_(
@@ -68,11 +70,11 @@ def get_properties():
             return jsonify({"message": "city parameter too long"}), 400
         resolved = _resolve_city_alias(city)
         query = query.filter(Property.city.ilike(f"{resolved}%"))
-    if rooms:
+    if rooms is not None:
         query = query.filter(Property.rooms == rooms)
-    if price_min:
+    if price_min is not None:
         query = query.filter(Property.price >= price_min)
-    if price_max:
+    if price_max is not None:
         query = query.filter(Property.price <= price_max)
 
     if sort_by == 'cheapest':
@@ -134,14 +136,25 @@ def get_map_properties():
             return jsonify({"message": "city parameter too long"}), 400
         resolved = _resolve_city_alias(city)
         query = query.filter(Property.city.ilike(f"{resolved}%"))
-    if rooms:
+    if rooms is not None:
         query = query.filter(Property.rooms == rooms)
-    if price_min:
+    if price_min is not None:
         query = query.filter(Property.price >= price_min)
-    if price_max:
+    if price_max is not None:
         query = query.filter(Property.price <= price_max)
 
-    properties = query.limit(MAX_MAP_PINS).all()
+    properties = (
+        query
+        .with_entities(
+            Property.id, Property.title, Property.price, Property.currency,
+            Property.address, Property.latitude, Property.longitude,
+            Property.city, Property.district, Property.geocode_precision,
+            Property.area, Property.rooms, Property.floor,
+            Property.images, Property.source_url, Property.created_at,
+        )
+        .limit(MAX_MAP_PINS)
+        .all()
+    )
 
     data = [{
         'id': p.id,
@@ -157,7 +170,7 @@ def get_map_properties():
         'area': p.area,
         'rooms': p.rooms,
         'floor': p.floor,
-        'images': p.images[:1] if p.images else [],
+        'images': (p.images or [])[:1],
         'source_url': p.source_url,
         'created_at': p.created_at.isoformat() if p.created_at else None
     } for p in properties]
