@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import { useTheme } from '../hooks/useTheme';
 
 interface AuthLayoutProps {
     children: React.ReactNode;
@@ -8,14 +9,7 @@ interface AuthLayoutProps {
 
 const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
     const { t, i18n } = useTranslation();
-    const [darkMode, setDarkMode] = useState(() => {
-        return localStorage.getItem('theme') === 'dark';
-    });
-
-    useEffect(() => {
-        document.documentElement.classList.toggle('dark', darkMode);
-        localStorage.setItem('theme', darkMode ? 'dark' : 'light');
-    }, [darkMode]);
+    const { darkMode, toggleDark } = useTheme();
 
     const toggleLanguage = () => {
         const newLang = i18n.language === 'uk' ? 'en' : 'uk';
@@ -26,7 +20,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
         <div className="min-h-screen bg-background text-text-main flex flex-col relative">
             <div className="absolute top-6 right-6 flex items-center gap-4 z-10">
                 <button
-                    onClick={() => setDarkMode(!darkMode)}
+                    onClick={toggleDark}
                     className="p-2 rounded-full bg-surface border border-border text-text-muted hover:text-primary hover:border-primary transition-colors"
                     title={darkMode ? 'Light mode' : 'Dark mode'}
                 >

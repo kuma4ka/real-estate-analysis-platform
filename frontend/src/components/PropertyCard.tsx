@@ -22,11 +22,11 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property }) => {
     const imageUrl = (property.images && property.images.length > 0) ? property.images[0] : null;
 
     const isGuest = !user;
-    const CardWrapper: React.ElementType = (!isGuest && property.source_url) ? 'a' : 'div';
-    
-    // For users: open link in new tab. For guests: navigate to login.
-    const wrapperProps = (!isGuest && property.source_url) 
-        ? { href: property.source_url, target: "_blank", rel: "noopener noreferrer" } 
+    const safeSourceUrl = property.source_url?.startsWith('http') ? property.source_url : null;
+    const CardWrapper: React.ElementType = (!isGuest && safeSourceUrl) ? 'a' : 'div';
+
+    const wrapperProps = (!isGuest && safeSourceUrl)
+        ? { href: safeSourceUrl, target: "_blank", rel: "noopener noreferrer" }
         : { onClick: () => isGuest && navigate('/login'), role: isGuest ? "button" : undefined };
 
     return (

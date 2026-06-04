@@ -2,6 +2,12 @@ import type { PropertiesResponse, PropertyFilters, Property } from '../types/pro
 
 export const API_BASE_URL = '/api/v1';
 
+let _logoutCallback: (() => void) | null = null;
+
+export const setLogoutCallback = (fn: () => void) => {
+    _logoutCallback = fn;
+};
+
 // SECURITY NOTE: The JWT token is stored in sessionStorage, which is
 // readable by any JavaScript running on the page (i.e. vulnerable to XSS).
 // The industry-standard alternative is an HttpOnly cookie managed by the
@@ -11,50 +17,48 @@ export const API_BASE_URL = '/api/v1';
 export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
     const token = sessionStorage.getItem('token');
     const headers = new Headers(options.headers || {});
-    
+
     if (token) {
         headers.set('Authorization', `Bearer ${token}`);
     }
 
-    return fetch(url, { ...options, headers });
+    const response = await fetch(url, { ...options, headers });
+
+    if (response.status === 401 && _logoutCallback) {
+        _logoutCallback();
+    }
+
+    return response;
 };
 
 export const fetchProperties = async (filters: PropertyFilters = {}): Promise<PropertiesResponse> => {
-    try {
-        const params = new URLSearchParams();
-        
-        if (filters.page) params.append('page', filters.page.toString());
-        if (filters.per_page) params.append('per_page', filters.per_page.toString());
-        if (filters.city) params.append('city', filters.city);
-        if (filters.rooms !== undefined && filters.rooms !== '') params.append('rooms', filters.rooms.toString());
-        if (filters.price_min !== undefined && filters.price_min !== '') params.append('price_min', filters.price_min.toString());
-        if (filters.price_max !== undefined && filters.price_max !== '') params.append('price_max', filters.price_max.toString());
-        if (filters.sort) params.append('sort', filters.sort);
-        if (filters.search) params.append('search', filters.search);
+    const params = new URLSearchParams();
 
-        const response = await fetchWithAuth(`${API_BASE_URL}/properties?${params.toString()}`);
+    if (filters.page) params.append('page', filters.page.toString());
+    if (filters.per_page) params.append('per_page', filters.per_page.toString());
+    if (filters.city) params.append('city', filters.city);
+    if (filters.rooms !== undefined && filters.rooms !== '') params.append('rooms', filters.rooms.toString());
+    if (filters.price_min !== undefined && filters.price_min !== '') params.append('price_min', filters.price_min.toString());
+    if (filters.price_max !== undefined && filters.price_max !== '') params.append('price_max', filters.price_max.toString());
+    if (filters.sort) params.append('sort', filters.sort);
+    if (filters.search) params.append('search', filters.search);
 
-        if (!response.ok) {
-            throw new Error(`API Error: ${response.statusText}`);
-        }
+    const response = await fetchWithAuth(`${API_BASE_URL}/properties?${params.toString()}`);
 
-        const data: PropertiesResponse = await response.json();
-        return data;
-    } catch (error) {
-        throw error;
+    if (!response.ok) {
+        throw new Error(`API Error: ${response.statusText}`);
     }
+
+    const data: PropertiesResponse = await response.json();
+    return data;
 };
 
 export const fetchAllPropertiesForMap = async (): Promise<{ data: Property[], count: number }> => {
-    try {
-        const response = await fetchWithAuth(`${API_BASE_URL}/properties/map`);
-        if (!response.ok) {
-            throw new Error(`API Error: ${response.statusText}`);
-        }
-        return await response.json();
-    } catch (error) {
-        throw error;
+    const response = await fetchWithAuth(`${API_BASE_URL}/properties/map`);
+    if (!response.ok) {
+        throw new Error(`API Error: ${response.statusText}`);
     }
+    return response.json();
 };
 
 export interface StatsData {
@@ -69,15 +73,11 @@ export interface StatsData {
 }
 
 export const fetchStats = async (): Promise<StatsData> => {
-    try {
-        const response = await fetchWithAuth(`${API_BASE_URL}/stats`);
-        if (!response.ok) {
-            throw new Error(`API Error: ${response.statusText}`);
-        }
-        return await response.json();
-    } catch (error) {
-        throw error;
+    const response = await fetchWithAuth(`${API_BASE_URL}/stats`);
+    if (!response.ok) {
+        throw new Error(`API Error: ${response.statusText}`);
     }
+    return response.json();
 };
 
 export interface ForecastPoint {
@@ -103,51 +103,49 @@ export interface ForecastData {
 }
 
 export const fetchForecast = async (city?: string): Promise<ForecastData> => {
-    try {
-        let urlStr = `${API_BASE_URL}/stats/forecast`;
-        if (city) {
-            urlStr += `?${new URLSearchParams({ city }).toString()}`;
-        }
-        const response = await fetchWithAuth(urlStr);
-        if (!response.ok) {
-            throw new Error(`API Error: ${response.statusText}`);
-        }
-        return await response.json();
-    } catch (error) {
-        throw error;
+    let urlStr = `${API_BASE_URL}/stats/forecast`;
+    if (city) {
+        urlStr += `?${new URLSearchParams({ city }).toString()}`;
     }
+    const response = await fetchWithAuth(urlStr);
+    if (!response.ok) {
+        throw new Error(`API Error: ${response.statusText}`);
+    }
+    return response.json();
 };
 
 export const downloadStatsCsv = async (): Promise<void> => {
-    try {
-        const response = await fetchWithAuth(`${API_BASE_URL}/stats/export`);
-        if (!response.ok) {
-            throw new Error(`API Error: ${response.statusText}`);
-        }
-        
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = 'market_analysis_export.csv';
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => {
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-        }, 100);
-    } catch (error) {
-        throw error;
+    const response = await fetchWithAuth(`${API_BASE_URL}/stats/export`);
+    if (!response.ok) {
+        throw new Error(`API Error: ${response.statusText}`);
     }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = 'market_analysis_export.csv';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    }, 100);
+};
+
+export const fetchCurrentUser = async () => {
+    const response = await fetchWithAuth(`${API_BASE_URL}/auth/me`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch current user');
+    }
+    return response.json();
 };
 
 export const apiLogout = async (): Promise<void> => {
     try {
-        await fetchWithAuth(`${API_BASE_URL}/auth/logout`, {
-            method: 'POST'
-        });
-    } catch (error) {
+        await fetchWithAuth(`${API_BASE_URL}/auth/logout`, { method: 'POST' });
+    } catch {
         // Logout failures are non-critical; swallow silently
     }
 };
