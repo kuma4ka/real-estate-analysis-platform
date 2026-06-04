@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+.env.*
+cypress/
+cypress_log.txt
+*.log
+coverage/
