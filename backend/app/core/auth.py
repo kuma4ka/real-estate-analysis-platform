@@ -1,19 +1,34 @@
+import os
 import jwt
 import uuid
+import logging
 from functools import wraps
 from flask import request, jsonify, g, current_app
 from datetime import datetime, timedelta, timezone
-from app.models import UserRole
+from app.models import UserRole, User
+from app import db, cache
+
+logger = logging.getLogger(__name__)
+
+_ROLE_RANK = {
+    UserRole.GUEST:   0,
+    UserRole.USER:    1,
+    UserRole.ANALYST: 2,
+    UserRole.ADMIN:   3,
+}
+
 
 def generate_token(user_id, role):
+    expiry_hours = int(os.getenv('JWT_EXPIRY_HOURS', '24'))
     payload = {
-        'exp': datetime.now(timezone.utc) + timedelta(days=1),
+        'exp': datetime.now(timezone.utc) + timedelta(hours=expiry_hours),
         'iat': datetime.now(timezone.utc),
         'sub': str(user_id),
         'role': role.value if hasattr(role, 'value') else role,
         'jti': str(uuid.uuid4())
     }
     return jwt.encode(payload, current_app.config['SECRET_KEY'], algorithm='HS256')
+
 
 def decode_token(token):
     try:
@@ -27,30 +42,20 @@ def decode_token(token):
     if not jti:
         return 'Invalid token. Please log in again.'
 
-    # --- Redis-first blocklist check ---
-    # Check the cache before touching the database. Positive hits (revoked
-    # tokens) are stored with a TTL equal to the token's remaining lifetime so
-    # the entry auto-cleans up when the JWT would have expired anyway.
-    from app import cache
     cache_key = f'blocklist_jti_{jti}'
     cached = cache.get(cache_key)
 
     if cached is True:
-        # Fast path: cache says this JTI is revoked — no DB query needed.
         return 'Token has been revoked. Please log in again.'
 
     if cached is None:
-        # Cache miss — check the database and populate the cache.
         from app.models import TokenBlocklist
         is_blocked = TokenBlocklist.query.filter_by(jti=jti).first()
         if is_blocked:
-            # Calculate remaining TTL from the token's exp claim (in seconds).
             exp = payload.get('exp', 0)
             remaining_ttl = max(1, int(exp - datetime.now(timezone.utc).timestamp()))
             cache.set(cache_key, True, timeout=remaining_ttl)
             return 'Token has been revoked. Please log in again.'
-        # Token is valid — cache a negative result briefly to reduce DB load
-        # during burst traffic. 60 s is short enough to handle edge cases.
         cache.set(cache_key, False, timeout=60)
 
     return payload
@@ -76,19 +81,18 @@ def require_auth(f):
                 g.jti = resp.get('jti')
                 return f(*args, **kwargs)
             return jsonify({'message': resp}), 401
-        
+
         return jsonify({'message': 'Provide a valid auth token'}), 401
     return decorated
 
-def require_role(role_name):
+
+def require_role(required_role):
     def decorator(f):
         @wraps(f)
         def decorated(*args, **kwargs):
             if not getattr(g, 'user_id', None):
                 return jsonify({'message': 'Authentication required'}), 401
 
-            from app.models import User
-            from app import db
             user = db.session.get(User, g.user_id)
             if not user:
                 return jsonify({'message': 'User not found'}), 401
@@ -96,15 +100,9 @@ def require_role(role_name):
             live_role = user.role
             g.role = live_role
 
-            ROLE_HIERARCHY = {
-                UserRole.GUEST:   {UserRole.GUEST, UserRole.USER, UserRole.ANALYST, UserRole.ADMIN},
-                UserRole.USER:    {UserRole.USER, UserRole.ANALYST, UserRole.ADMIN},
-                UserRole.ANALYST: {UserRole.ANALYST, UserRole.ADMIN},
-                UserRole.ADMIN:   {UserRole.ADMIN},
-            }
-
-            allowed = ROLE_HIERARCHY.get(role_name, {role_name})
-            if live_role not in allowed:
+            required_rank = _ROLE_RANK.get(required_role, 99)
+            actual_rank = _ROLE_RANK.get(live_role, -1)
+            if actual_rank < required_rank:
                 return jsonify({'message': 'Insufficient permissions'}), 403
 
             return f(*args, **kwargs)
@@ -125,4 +123,3 @@ def optional_auth(f):
                 g.jti = payload.get('jti')
         return f(*args, **kwargs)
     return decorated
-
