@@ -4,13 +4,13 @@ SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 # Run scrape_meget every 6 hours (10 pages ~ 200 listings)
-0 */6 * * * root cd /app && /usr/local/bin/flask scrape_meget --pages 10 >> /var/log/cron.log 2>&1
+0 */6 * * * root cd /app && export DATABASE_URL SECRET_KEY RATELIMIT_STORAGE_URI CACHE_TYPE CACHE_REDIS_URL JWT_EXPIRY_HOURS && /usr/local/bin/flask scrape_meget --pages 10 >> /var/log/cron.log 2>&1
 
 # Run scrape_bon_ua every 6 hours (offset by 1 hour)
-0 1-23/6 * * * root cd /app && /usr/local/bin/flask scrape_bon_ua --pages 10 >> /var/log/cron.log 2>&1
+0 1-23/6 * * * root cd /app && export DATABASE_URL SECRET_KEY RATELIMIT_STORAGE_URI CACHE_TYPE CACHE_REDIS_URL JWT_EXPIRY_HOURS && /usr/local/bin/flask scrape_bon_ua --pages 10 >> /var/log/cron.log 2>&1
 
 # Deactivate expired listings every Sunday at 03:00
-0 3 * * 0 root cd /app && /usr/local/bin/flask purge-stale --workers 30 >> /var/log/cron.log 2>&1
+0 3 * * 0 root cd /app && export DATABASE_URL SECRET_KEY RATELIMIT_STORAGE_URI CACHE_TYPE CACHE_REDIS_URL JWT_EXPIRY_HOURS && /usr/local/bin/flask purge-stale --workers 30 >> /var/log/cron.log 2>&1
 
 # Purge expired JWT tokens from blocklist daily at 04:00
-0 4 * * * root cd /app && /usr/local/bin/flask purge-tokens >> /var/log/cron.log 2>&1
+0 4 * * * root cd /app && export DATABASE_URL SECRET_KEY RATELIMIT_STORAGE_URI CACHE_TYPE CACHE_REDIS_URL JWT_EXPIRY_HOURS && /usr/local/bin/flask purge-tokens >> /var/log/cron.log 2>&1

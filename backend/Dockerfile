@@ -7,13 +7,13 @@ RUN apt-get update && apt-get install -y gcc libpq-dev cron && rm -rf /var/lib/a
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Setup cron
-COPY cron/crontab /etc/cron.d/scraper-cron
-RUN chmod 0644 /etc/cron.d/scraper-cron
-RUN crontab /etc/cron.d/scraper-cron
-RUN touch /var/log/cron.log
-
 COPY . .
+
+# Setup cron (must run as root; cron daemon itself drops privileges per crontab entry)
+COPY cron/crontab /etc/cron.d/scraper-cron
+RUN chmod 0644 /etc/cron.d/scraper-cron \
+    && crontab /etc/cron.d/scraper-cron \
+    && touch /var/log/cron.log
 
 EXPOSE 5000
 

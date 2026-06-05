@@ -1,3 +1,4 @@
+import os
 import time
 import click
 from flask.cli import with_appcontext
@@ -75,8 +76,10 @@ def regeocode_ids_command(ids):
 @with_appcontext
 def backfill_images(limit):
     """Re-fetch images for properties that have none."""
-    from app.services.meget import fetch_html
-    from app.services.meget.parser import ListingParser
+    from app.services.meget import fetch_html as meget_fetch_html
+    from app.services.meget.parser import ListingParser as MegetParser
+    from app.services.bon_ua.network import fetch_html as bon_fetch_html
+    from app.services.bon_ua.parser import BonUaParser
 
     query = Property.query.filter(
         db.or_(Property.images.is_(None), Property.images == '[]')
@@ -91,21 +94,27 @@ def backfill_images(limit):
     updated = 0
     for i, p in enumerate(props, 1):
         click.echo(f"[{i}/{len(props)}] #{p.id}: {p.source_url}")
-        soup = fetch_html(p.source_url)
-        if not soup:
-            click.echo("  [SKIP] Could not fetch page")
+
+        images = []
+        if p.source_website == 'bon_ua':
+            html = bon_fetch_html(p.source_url)
+            if html:
+                parser = BonUaParser(html, p.source_url)
+                images = parser.get_images()
+        else:
+            soup = meget_fetch_html(p.source_url)
+            if soup:
+                parser = MegetParser(soup, p.source_url)
+                images = parser.get_images()
+
+        if not images:
+            click.echo("  [SKIP] Could not fetch or no images found")
             time.sleep(1)
             continue
 
-        parser = ListingParser(soup, p.source_url)
-        images = parser.get_images()
-
-        if images:
-            p.images = images
-            updated += 1
-            click.echo(f"  [OK]   Found {len(images)} image(s)")
-        else:
-            click.echo("  [SKIP] No images found")
+        p.images = images
+        updated += 1
+        click.echo(f"  [OK]   Found {len(images)} image(s)")
 
         if i % 25 == 0:
             db.session.commit()
@@ -116,17 +125,20 @@ def backfill_images(limit):
     click.echo(f"\nDone. Updated {updated}/{len(props)} properties.")
 
 
+
 @click.command('convert-currencies')
 @with_appcontext
 def convert_currencies_command():
     """Converts all historical property prices from UAH/EUR to USD."""
     from app.services.currency import convert_to_usd
 
-    props = Property.query.filter(Property.currency != 'USD').all()
-    click.echo(f"Found {len(props)} properties with non-USD currencies.")
+    total = Property.query.filter(Property.currency != 'USD').count()
+    click.echo(f"Found {total} properties with non-USD currencies.")
 
     updated = 0
-    for i, p in enumerate(props, 1):
+    i = 0
+    for p in Property.query.filter(Property.currency != 'USD').yield_per(500):
+        i += 1
         if not p.price or p.price <= 0:
             continue
 
@@ -138,13 +150,14 @@ def convert_currencies_command():
         p.currency = 'USD'
         updated += 1
 
-        click.echo(f"[{i}/{len(props)}] #{p.id}: {old_price} {old_curr} -> {new_price:.0f} USD")
+        click.echo(f"[{i}/{total}] #{p.id}: {old_price} {old_curr} -> {new_price:.0f} USD")
 
-        if i % 100 == 0:
+        if updated % 100 == 0:
             db.session.commit()
 
     db.session.commit()
     click.echo(f"\nDone. Converted {updated} properties to USD.")
+
 
 
 @click.command('rescrape-duplicates')
@@ -283,12 +296,12 @@ def purge_tokens_command():
     """Purges expired JWT tokens from the TokenBlocklist."""
     from datetime import datetime, timezone, timedelta
     from app.models import TokenBlocklist
-    from app import db
 
-    # Tokens are valid for 1 day, so anything older than 24 hours can be safely removed.
-    expiration_threshold = datetime.now(timezone.utc) - timedelta(days=1)
-    
+    expiry_hours = int(os.getenv('JWT_EXPIRY_HOURS', '24'))
+    expiration_threshold = datetime.now(timezone.utc) - timedelta(hours=expiry_hours)
+
     deleted_count = db.session.query(TokenBlocklist).filter(TokenBlocklist.created_at < expiration_threshold).delete()
     db.session.commit()
-    
-    click.echo(f"Purged {deleted_count} expired tokens from blocklist.")
+
+    click.echo(f"Purged {deleted_count} expired tokens from blocklist (threshold: {expiry_hours}h).")
+
