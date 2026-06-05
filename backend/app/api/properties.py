@@ -139,8 +139,12 @@ def get_map_properties():
     if rooms is not None:
         query = query.filter(Property.rooms == rooms)
     if price_min is not None:
+        if price_min < 0:
+            return jsonify({"message": "price_min cannot be negative"}), 400
         query = query.filter(Property.price >= price_min)
     if price_max is not None:
+        if price_max < 0:
+            return jsonify({"message": "price_max cannot be negative"}), 400
         query = query.filter(Property.price <= price_max)
 
     properties = (

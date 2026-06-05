@@ -62,6 +62,7 @@ def _compute_stats():
             )
         ).label('avg_price_per_m2'),
     ).filter(
+        Property.is_active == True,
         Property.city.isnot(None)
     ).group_by(Property.city).order_by(func.count(Property.id).desc()).limit(10).all()
 
