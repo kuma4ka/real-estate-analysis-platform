@@ -12,6 +12,7 @@ def seed_users_command():
     """Seeds the database with default Admin, Analyst, and User accounts from ENV secrets."""
     roles = [UserRole.ADMIN, UserRole.ANALYST, UserRole.USER]
     created = 0
+    updated = 0
 
     for role in roles:
         email = os.environ.get(f'SEED_{role.name.upper()}_EMAIL')
@@ -23,7 +24,10 @@ def seed_users_command():
 
         existing_user = User.query.filter_by(email=email).first()
         if existing_user:
-            click.echo(f"[SKIP] {role.value} user already exists.")
+            existing_user.set_password(password)
+            existing_user.role = role
+            click.echo(f"[UPDATE] {role.value} user updated with credentials from ENV.")
+            updated += 1
             continue
 
         new_user = User(email=email, role=role)
@@ -32,9 +36,9 @@ def seed_users_command():
         created += 1
         click.echo(f"[OK]   Created {role.value} user.")
 
-    if created > 0:
+    if created > 0 or updated > 0:
         db.session.commit()
-        click.echo(f"Successfully seeded {created} new user(s).")
+        click.echo(f"Successfully seeded {created} new user(s) and updated {updated} existing user(s).")
     else:
-        click.echo("No new users were created.")
+        click.echo("No users were created or updated.")
 
